@@ -1,0 +1,20 @@
+# build artifacts
+*.o
+*.a
+*.so
+*.out
+*.exe
+main
+build/
+bin/
+obj/
+
+# CUDA outputs
+*.ptx
+*.cubin
+*.fatbin
+
+# editor / OS
+.vscode/
+*.swp
+.DS_Store
