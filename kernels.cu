@@ -1,6 +1,10 @@
 #include "bubble/bubbleIn.cuh"
+#include "jet/jetIn.cuh"
+#include "jet/boundary_conditions.cuh"
 #include "lbm.cuh"
 #include "collisionOperators.cuh"
+
+//--------------------- Initialize fields --------------------------------------------------
 
 __global__ void bubble(real_t *f_r, real_t *f_b, real_t *rho_r, real_t *rho_b)
 {
@@ -17,6 +21,35 @@ __global__ void bubble(real_t *f_r, real_t *f_b, real_t *rho_r, real_t *rho_b)
 
     init_equilibrium(f_r, f_b, rho_r, rho_b, x, y, z);
 }
+
+__global__ void jetDensity(real_t *f_r, real_t *f_b, real_t *rho_r, real_t *rho_b)
+{
+    const int x = threadIdx.x + blockIdx.x * blockDim.x;
+    const int y = threadIdx.y + blockIdx.y * blockDim.y;
+    const int z = threadIdx.z + blockIdx.z * blockDim.z;
+
+    if (interior(x, y, z))
+    {
+        return;
+    }
+
+    init_density_jet(f_r, rho_r, f_b, rho_b, x, y, z);
+}
+
+__global__ void Injet(real_t *f_r, real_t *f_b, real_t *rho_r, real_t *rho_b)
+{
+    const int x = threadIdx.x + blockIdx.x * blockDim.x;
+    const int z = threadIdx.y + blockIdx.y * blockDim.y;
+
+    if (inlet_oulet_interior(x, z))
+    {
+        return;
+    }
+
+    jet_mask(f_r, rho_r, f_b, rho_b, x, z);
+}
+
+//--------------- Main loop ----------------
 
 __global__ void density(const real_t *f, real_t *rho)
 {
@@ -109,4 +142,39 @@ __global__ void ColliStream(real_t *fir, const real_t *rhor,
 
         fib[fidx(idn, i)] = real_t(rhob[id] / (rhor[id] + rhob[id])) * gi - Deltai; //
     }
+}
+
+//----------------- Boundary conditions -------------------------
+
+__global__ void inlet(real_t *f_r, real_t *rho_r, const real_t *Pixx_r, const real_t *Pixy_r, const real_t *Piyy_r, const real_t *Piyz_r, const real_t *Pizz_r, const real_t *Pixz_r,
+                      real_t *f_b, real_t *rho_b, const real_t *Pixx_b, const real_t *Pixy_b, const real_t *Piyy_b, const real_t *Piyz_b, const real_t *Pizz_b, const real_t *Pixz_b)
+{
+
+    const int x = blockIdx.x * blockDim.x + threadIdx.x;
+    const int z = blockIdx.y * blockDim.y + threadIdx.y;
+
+    if (inlet_oulet_interior(x, z))
+    {
+        return;
+    }
+
+    inlet_calculation(f_r, rho_r, Pixx_r, Pixy_r, Piyy_r, Piyz_r, Pizz_r, Pixz_r,
+                      f_b, rho_b, Pixx_b, Pixy_b, Piyy_b, Piyz_b, Pizz_b, Pixz_b, x, z);
+}
+
+__global__ void neumann(real_t *f, real_t *rho,
+                        real_t *ux, real_t *uy, real_t *uz,
+                        const real_t *Pixx, const real_t *Pixy, const real_t *Piyy,
+                        const real_t *Piyz, const real_t *Pizz, const real_t *Pixz, const real_t omega)
+{
+
+    const int x = blockIdx.x * blockDim.x + threadIdx.x;
+    const int z = blockIdx.y * blockDim.y + threadIdx.y;
+
+    if (inlet_oulet_interior(x, z))
+    {
+        return;
+    }
+
+    neumann_calculation(f, rho, ux, uy, uz, Pixx, Pixy, Piyy, Piyz, Pizz, Pixz, omega, x, z);
 }

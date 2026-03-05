@@ -10,8 +10,6 @@
 #include "launch.cuh"
 #include "io/save_data.cuh"
 
-#include "nanchechk.cuh"
-
 int main()
 {
     CUDA_CHECK(cudaSetDevice(0));
@@ -22,14 +20,18 @@ int main()
 
     stencil();
 
-    CudaConfig cfg = make_cuda_config();
+    CudaConfig cfg = make_cudaConfig();
     std::cout << "block=(" << cfg.block.x << "," << cfg.block.y << "," << cfg.block.z << ")\n";
     std::cout << "grid =(" << cfg.grid.x << "," << cfg.grid.y << "," << cfg.grid.z << ")\n";
 
     LbmDevice d = allocate_device_memory();
     LbmHost h = allocate_host_memory();
 
+    launch_jetDensity(cfg, d);
+    launch_Injet(cfg, d);
+
     launch_bubble(cfg, d);
+
     CUDA_CHECK(cudaDeviceSynchronize());
 
     for (int step = 0; step < NSTEP; ++step)
@@ -40,17 +42,10 @@ int main()
 
         launch_pineq(cfg, d);
 
-        /*         check_nan_D2H(d.rhor, (int)Ncells, "rhor");
-                check_nan_D2H(d.rhob, (int)Ncells, "rhob");
-                check_nan_D2H(d.fir, (int)fSize, "fir");
-                check_nan_D2H(d.fib, (int)fSize, "fib"); */
-
         launch_collistream(cfg, d);
 
-        /*         check_nan_D2H(d.rhor, (int)Ncells, "rhor");
-                check_nan_D2H(d.rhob, (int)Ncells, "rhob");
-                check_nan_D2H(d.fir, (int)fSize, "fir");
-                check_nan_D2H(d.fib, (int)fSize, "fib"); */
+        launch_inlet_bc(cfg, d);
+        launch_neumann_bc(cfg, d);
 
         if (step % 10 == 0)
         {

@@ -6,6 +6,10 @@
 
 __global__ void bubble(real_t *f_r, real_t *f_b, real_t *rho_r, real_t *rho_b);
 
+__global__ void jetDensity(real_t *f_r, real_t *f_b, real_t *rho_r, real_t *rho_b);
+
+__global__ void Injet(real_t *f_r, real_t *f_b, real_t *rho_r, real_t *rho_b);
+
 __global__ void density(const real_t *f, real_t *rho);
 
 __global__ void velocity(const real_t *f_r, const real_t *rho_r, const real_t *f_b, const real_t *rho_b, real_t *ux, real_t *uy, real_t *uz);
@@ -21,5 +25,18 @@ __global__ void ColliStream(real_t *fir, const real_t *rhor,
                             const real_t *Pixxb, const real_t *Pixyb, const real_t *Piyyb,
                             const real_t *Piyzb, const real_t *Pizzb, const real_t *Pixzb,
                             const real_t *ux, const real_t *uy, const real_t *uz);
+
+__global__ void inlet(real_t *f_r, real_t *rho_r,
+                      const real_t *Pixx_r, const real_t *Pixy_r, const real_t *Piyy_r,
+                      const real_t *Piyz_r, const real_t *Pizz_r, const real_t *Pixz_r,
+                      real_t *f_b, real_t *rho_b,
+                      const real_t *Pixx_b, const real_t *Pixy_b, const real_t *Piyy_b,
+                      const real_t *Piyz_b, const real_t *Pizz_b, const real_t *Pixz_b);
+
+__global__ void neumann(real_t *f, real_t *rho,
+                        real_t *ux, real_t *uy, real_t *uz,
+                        const real_t *Pixx, const real_t *Pixy, const real_t *Piyy,
+                        const real_t *Piyz, const real_t *Pizz, const real_t *Pixz,
+                        const real_t omega);
 
 #endif
