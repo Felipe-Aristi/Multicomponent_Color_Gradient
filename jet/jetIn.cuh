@@ -40,7 +40,7 @@ __device__ void jet_mask(real_t *f_r, real_t *rho_r, real_t *f_b, real_t *rho_b,
     for (int i = 0; i < Q; ++i)
     {
         f_r[fidx(id, i)] = d_w[i] * rho_r[id];
-        f_b[fidx(id, i)] = d_w[i] * rho_r[id];
+        f_b[fidx(id, i)] = d_w[i] * rho_b[id];
     }
 }
 

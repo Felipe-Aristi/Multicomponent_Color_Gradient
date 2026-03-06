@@ -33,10 +33,12 @@ __global__ void inlet(real_t *f_r, real_t *rho_r,
                       const real_t *Pixx_b, const real_t *Pixy_b, const real_t *Piyy_b,
                       const real_t *Piyz_b, const real_t *Pizz_b, const real_t *Pixz_b);
 
-__global__ void neumann(real_t *f, real_t *rho,
-                        real_t *ux, real_t *uy, real_t *uz,
-                        const real_t *Pixx, const real_t *Pixy, const real_t *Piyy,
-                        const real_t *Piyz, const real_t *Pizz, const real_t *Pixz,
-                        const real_t omega);
+__global__ void neumann(real_t *fir, real_t *rhor,
+                        const real_t *Pixxr, const real_t *Pixyr, const real_t *Piyyr,
+                        const real_t *Piyzr, const real_t *Pizzr, const real_t *Pixzr,
+                        real_t *fib, real_t *rhob,
+                        const real_t *Pixxb, const real_t *Pixyb, const real_t *Piyyb,
+                        const real_t *Piyzb, const real_t *Pizzb, const real_t *Pixzb,
+                        real_t *ux, real_t *uy, real_t *uz);
 
 #endif

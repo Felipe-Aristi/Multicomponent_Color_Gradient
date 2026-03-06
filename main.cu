@@ -30,7 +30,7 @@ int main()
     launch_jetDensity(cfg, d);
     launch_Injet(cfg, d);
 
-    launch_bubble(cfg, d);
+    // launch_bubble(cfg, d);
 
     CUDA_CHECK(cudaDeviceSynchronize());
 

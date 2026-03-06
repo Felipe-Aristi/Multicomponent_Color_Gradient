@@ -2,11 +2,13 @@
 #define BOUNDARY_CONDITIONS_CUH
 
 #include "cuda_runtime.h"
-#include "../constants.cuh"
 #include "../utilities/bounds.cuh"
 #include "../utilities/indexing.cuh"
 #include "../utilities/types.cuh"
+#include "../constants.cuh"
 #include "../lbm.cuh"
+#include "../forces.cuh"
+#include "../collisionOperators.cuh"
 #include "../stencil.cuh"
 
 // inlet boundary condition
@@ -57,10 +59,14 @@ __device__ __forceinline__ void inlet_calculation(real_t *f_r, real_t *rho_r, co
 
 // outlet boundary condition
 
-__device__ __forceinline__ void neumann_calculation(real_t *f, real_t *rho,
+/* __device__ __forceinline__ void neumann_calculation(real_t *fir, real_t *rhor,
+                                                    const real_t *Pixxr, const real_t *Pixyr, const real_t *Piyyr,
+                                                    const real_t *Piyzr, const real_t *Pizzr, const real_t *Pixzr,
+                                                    real_t *fib, real_t *rhob,
+                                                    const real_t *Pixxb, const real_t *Pixyb, const real_t *Piyyb,
+                                                    const real_t *Piyzb, const real_t *Pizzb, const real_t *Pixzb,
                                                     real_t *ux, real_t *uy, real_t *uz,
-                                                    const real_t *Pixx, const real_t *Pixy, const real_t *Piyy,
-                                                    const real_t *Piyz, const real_t *Pizz, const real_t *Pixz, const real_t omega, int x, int z)
+                                                    int x, int z)
 {
 
     const int yB = NY - 1;
@@ -69,23 +75,100 @@ __device__ __forceinline__ void neumann_calculation(real_t *f, real_t *rho,
     const int idB = idx(x, yB, z);
     const int idF = idx(x, yF, z);
 
-    rho[idB] = rho[idF];
+    rhor[idB] = rhor[idF];
+    rhob[idB] = rhob[idF];
     ux[idB] = ux[idF];
     uy[idB] = uy[idF];
     uz[idB] = uz[idF];
+
+    real_t Fxr, Fyr, Fzr, Ar, absforcer;
+    preOmega2(rhor, rhob, x, yF, z, taur, taub, Fxr, Fyr, Fzr, absforcer, Ar);
 
 #pragma unroll 27
     for (int i = 0; i < Q; ++i)
     {
         if (d_cy[i] == -1)
         {
-            int fluid_node = idx(x + d_cx[i], yB + d_cy[i], z + d_cz[i]);
+            int fluid_node = idx(x + d_cx[i], yF, z + d_cz[i]);
 
-            real_t fieq = feq(i, rho[idB], ux[idB], uy[idB], uz[idB]);
-            real_t fineqr = fneqr(i, Pixx[idF], Pixy[idF], Piyy[idF], Piyz[idF], Pizz[idF], Pixz[idF]);
+            const real_t Omega1R = Omega1(i, rhor[idB], ux[idB], uy[idB], uz[idB], Pixxr[idF], Pixyr[idF], Piyyr[idF], Piyzr[idF], Pizzr[idF], Pixzr[idF], omegar);
+            const real_t Omega2R = Omega2(i, rhor[idB], taur, rhob[idB], taub, Fxr, Fyr, Fzr, absforcer, Ar);
 
-            f[fidx(fluid_node, i)] = fieq + (real_t(1.0) - omega) * fineqr;
+            const real_t Omega1B = Omega1(i, rhob[idB], ux[idB], uy[idB], uz[idB], Pixxb[idF], Pixyb[idF], Piyyb[idF], Piyzb[idF], Pizzb[idF], Pixzb[idF], omegab);
+
+            const real_t gi = Omega1R + Omega1B + Omega2R;
+
+            const real_t Deltai = recolorDelta(i, rhor[idB], rhob[idB], Fxr, Fyr, Fzr, absforcer);
+
+            fir[fidx(fluid_node, i)] = real_t(rhor[idB] / (rhor[idB] + rhob[idB])) * gi; //
+
+            fib[fidx(fluid_node, i)] = real_t(rhob[idB] / (rhor[idB] + rhob[idB])) * gi; //
         }
+    }
+} */
+
+__device__ __forceinline__ void neumann_calculation(real_t *fir, real_t *rhor,
+                                                    const real_t *Pixxr, const real_t *Pixyr, const real_t *Piyyr,
+                                                    const real_t *Piyzr, const real_t *Pizzr, const real_t *Pixzr,
+                                                    real_t *fib, real_t *rhob,
+                                                    const real_t *Pixxb, const real_t *Pixyb, const real_t *Piyyb,
+                                                    const real_t *Piyzb, const real_t *Pizzb, const real_t *Pixzb,
+                                                    real_t *ux, real_t *uy, real_t *uz,
+                                                    int x, int z)
+{
+    const int yB = NY - 1;   // ghost plane (not streamed by ColliStream)
+    const int yOut = NY - 2; // last fluid plane (needs incoming cy=-1)
+    const int ySrc = NY - 2; // interior source plane (critical)
+
+    const int idB = idx(x, yB, z);
+    const int idSrc = idx(x, ySrc, z);
+
+    // Copy macros (Neumann)
+    rhor[idB] = rhor[idSrc];
+    rhob[idB] = rhob[idSrc];
+    ux[idB] = ux[idSrc];
+    uy[idB] = uy[idSrc];
+    uz[idB] = uz[idSrc];
+
+    const real_t rhoT = rhor[idB] + rhob[idB];
+    const real_t eps = real_t(1e-12);
+    const real_t invRhoT = real_t(1.0) / (rhoT + eps);
+
+    const real_t aR = rhor[idB] * invRhoT;
+    const real_t aB = rhob[idB] * invRhoT;
+
+    // TOTAL noneq stress for regularization
+    const real_t PixxT = Pixxr[idSrc] + Pixxb[idSrc];
+    const real_t PixyT = Pixyr[idSrc] + Pixyb[idSrc];
+    const real_t PiyyT = Piyyr[idSrc] + Piyyb[idSrc];
+    const real_t PiyzT = Piyzr[idSrc] + Piyzb[idSrc];
+    const real_t PizzT = Pizzr[idSrc] + Pizzb[idSrc];
+    const real_t PixzT = Pixzr[idSrc] + Pixzb[idSrc];
+
+    // Choose ONE relaxation for the mixture (simple choice: same tau)
+    const real_t omegaMix = omegar; // or 0.5*(omegar+omegab)
+
+#pragma unroll 27
+    for (int i = 0; i < Q; ++i)
+    {
+        if (d_cy[i] != -1)
+            continue;
+
+        const int xn = x + d_cx[i];
+        const int zn = z + d_cz[i];
+        if (xn <= 0 || xn >= NX - 1 || zn <= 0 || zn >= NZ - 1)
+            continue;
+
+        const int idDest = idx(xn, yOut, zn);
+
+        // Regularized reconstruction of g_i
+        const real_t geq = feq(i, rhoT, ux[idB], uy[idB], uz[idB]);
+        const real_t gneq = fneqr(i, PixxT, PixyT, PiyyT, PiyzT, PizzT, PixzT);
+        const real_t gi = geq + (real_t(1.0) - omegaMix) * gneq;
+
+        // NO Omega2 and NO recoloring at outlet (prevents "wall")
+        fir[fidx(idDest, i)] = aR * gi;
+        fib[fidx(idDest, i)] = aB * gi;
     }
 }
 

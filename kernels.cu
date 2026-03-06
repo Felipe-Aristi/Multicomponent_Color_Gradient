@@ -28,7 +28,7 @@ __global__ void jetDensity(real_t *f_r, real_t *f_b, real_t *rho_r, real_t *rho_
     const int y = threadIdx.y + blockIdx.y * blockDim.y;
     const int z = threadIdx.z + blockIdx.z * blockDim.z;
 
-    if (interior(x, y, z))
+    if (x >= NX || y >= NY || z >= NZ)
     {
         return;
     }
@@ -57,7 +57,7 @@ __global__ void density(const real_t *f, real_t *rho)
     const int y = threadIdx.y + blockIdx.y * blockDim.y;
     const int z = threadIdx.z + blockIdx.z * blockDim.z;
 
-    if (x >= NX || y >= NY || z >= NZ)
+    if (interior(x, y, z))
     {
         return;
     }
@@ -138,9 +138,9 @@ __global__ void ColliStream(real_t *fir, const real_t *rhor,
 
         const int idn = idx(x + d_cx[i], y + d_cy[i], z + d_cz[i]);
 
-        fir[fidx(idn, i)] = real_t(rhor[id] / (rhor[id] + rhob[id])) * gi + Deltai; //
+        fir[fidx(idn, i)] = real_t(rhor[id] / (rhor[id] + rhob[id])) * gi + Deltai;
 
-        fib[fidx(idn, i)] = real_t(rhob[id] / (rhor[id] + rhob[id])) * gi - Deltai; //
+        fib[fidx(idn, i)] = real_t(rhob[id] / (rhor[id] + rhob[id])) * gi - Deltai;
     }
 }
 
@@ -162,10 +162,13 @@ __global__ void inlet(real_t *f_r, real_t *rho_r, const real_t *Pixx_r, const re
                       f_b, rho_b, Pixx_b, Pixy_b, Piyy_b, Piyz_b, Pizz_b, Pixz_b, x, z);
 }
 
-__global__ void neumann(real_t *f, real_t *rho,
-                        real_t *ux, real_t *uy, real_t *uz,
-                        const real_t *Pixx, const real_t *Pixy, const real_t *Piyy,
-                        const real_t *Piyz, const real_t *Pizz, const real_t *Pixz, const real_t omega)
+__global__ void neumann(real_t *fir, real_t *rhor,
+                        const real_t *Pixxr, const real_t *Pixyr, const real_t *Piyyr,
+                        const real_t *Piyzr, const real_t *Pizzr, const real_t *Pixzr,
+                        real_t *fib, real_t *rhob,
+                        const real_t *Pixxb, const real_t *Pixyb, const real_t *Piyyb,
+                        const real_t *Piyzb, const real_t *Pizzb, const real_t *Pixzb,
+                        real_t *ux, real_t *uy, real_t *uz)
 {
 
     const int x = blockIdx.x * blockDim.x + threadIdx.x;
@@ -176,5 +179,7 @@ __global__ void neumann(real_t *f, real_t *rho,
         return;
     }
 
-    neumann_calculation(f, rho, ux, uy, uz, Pixx, Pixy, Piyy, Piyz, Pizz, Pixz, omega, x, z);
+    neumann_calculation(fir, rhor, Pixxr, Pixyr, Piyyr, Piyzr, Pizzr, Pixzr,
+                        fib, rhob, Pixxb, Pixyb, Piyyb, Piyzb, Pizzb, Pixzb,
+                        ux, uy, uz, x, z);
 }

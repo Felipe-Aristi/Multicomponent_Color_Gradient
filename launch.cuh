@@ -77,15 +77,11 @@ inline void launch_neumann_bc(const CudaConfig &cfg, const LbmDevice &d, cudaStr
 {
     neumann<<<grid2D_xz(cfg), block2D_xz(cfg), 0, stream>>>(
         d.fir, d.rhor,
-        d.ux, d.uy, d.uz,
         d.Pixxr, d.Pixyr, d.Piyyr, d.Piyzr, d.Pizzr, d.Pixzr,
-        omegar);
-
-    neumann<<<grid2D_xz(cfg), block2D_xz(cfg), 0, stream>>>(
         d.fib, d.rhob,
-        d.ux, d.uy, d.uz,
         d.Pixxb, d.Pixyb, d.Piyyb, d.Piyzb, d.Pizzb, d.Pixzb,
-        omegab);
+        d.ux, d.uy, d.uz);
+
     CUDA_CHECK(cudaGetLastError());
 }
 
