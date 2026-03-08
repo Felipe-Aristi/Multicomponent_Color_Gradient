@@ -20,19 +20,12 @@ struct LbmDevice
     real_t *uy = nullptr;
     real_t *uz = nullptr;
 
-    real_t *Pixxr = nullptr;
-    real_t *Pixyr = nullptr;
-    real_t *Piyyr = nullptr;
-    real_t *Piyzr = nullptr;
-    real_t *Pizzr = nullptr;
-    real_t *Pixzr = nullptr;
-
-    real_t *Pixxb = nullptr;
-    real_t *Pixyb = nullptr;
-    real_t *Piyyb = nullptr;
-    real_t *Piyzb = nullptr;
-    real_t *Pizzb = nullptr;
-    real_t *Pixzb = nullptr;
+    real_t *Pixx = nullptr;
+    real_t *Pixy = nullptr;
+    real_t *Piyy = nullptr;
+    real_t *Piyz = nullptr;
+    real_t *Pizz = nullptr;
+    real_t *Pixz = nullptr;
 };
 
 // -------------------- Host buffers (for VTK output) --------------------
@@ -76,19 +69,12 @@ inline LbmDevice allocate_device_memory()
     CUDA_CHECK(cudaMalloc(&d.uy, bytesCell));
     CUDA_CHECK(cudaMalloc(&d.uz, bytesCell));
 
-    CUDA_CHECK(cudaMalloc(&d.Pixxr, bytesCell));
-    CUDA_CHECK(cudaMalloc(&d.Pixyr, bytesCell));
-    CUDA_CHECK(cudaMalloc(&d.Piyyr, bytesCell));
-    CUDA_CHECK(cudaMalloc(&d.Piyzr, bytesCell));
-    CUDA_CHECK(cudaMalloc(&d.Pizzr, bytesCell));
-    CUDA_CHECK(cudaMalloc(&d.Pixzr, bytesCell));
-
-    CUDA_CHECK(cudaMalloc(&d.Pixxb, bytesCell));
-    CUDA_CHECK(cudaMalloc(&d.Pixyb, bytesCell));
-    CUDA_CHECK(cudaMalloc(&d.Piyyb, bytesCell));
-    CUDA_CHECK(cudaMalloc(&d.Piyzb, bytesCell));
-    CUDA_CHECK(cudaMalloc(&d.Pizzb, bytesCell));
-    CUDA_CHECK(cudaMalloc(&d.Pixzb, bytesCell));
+    CUDA_CHECK(cudaMalloc(&d.Pixx, bytesCell));
+    CUDA_CHECK(cudaMalloc(&d.Pixy, bytesCell));
+    CUDA_CHECK(cudaMalloc(&d.Piyy, bytesCell));
+    CUDA_CHECK(cudaMalloc(&d.Piyz, bytesCell));
+    CUDA_CHECK(cudaMalloc(&d.Pizz, bytesCell));
+    CUDA_CHECK(cudaMalloc(&d.Pixz, bytesCell));
 
     CUDA_CHECK(cudaMemset(d.fir, 0, bytesF));
     CUDA_CHECK(cudaMemset(d.fib, 0, bytesF));
@@ -100,19 +86,12 @@ inline LbmDevice allocate_device_memory()
     CUDA_CHECK(cudaMemset(d.uy, 0, bytesCell));
     CUDA_CHECK(cudaMemset(d.uz, 0, bytesCell));
 
-    CUDA_CHECK(cudaMemset(d.Pixxr, 0, bytesCell));
-    CUDA_CHECK(cudaMemset(d.Pixyr, 0, bytesCell));
-    CUDA_CHECK(cudaMemset(d.Piyyr, 0, bytesCell));
-    CUDA_CHECK(cudaMemset(d.Piyzr, 0, bytesCell));
-    CUDA_CHECK(cudaMemset(d.Pizzr, 0, bytesCell));
-    CUDA_CHECK(cudaMemset(d.Pixzr, 0, bytesCell));
-
-    CUDA_CHECK(cudaMemset(d.Pixxb, 0, bytesCell));
-    CUDA_CHECK(cudaMemset(d.Pixyb, 0, bytesCell));
-    CUDA_CHECK(cudaMemset(d.Piyyb, 0, bytesCell));
-    CUDA_CHECK(cudaMemset(d.Piyzb, 0, bytesCell));
-    CUDA_CHECK(cudaMemset(d.Pizzb, 0, bytesCell));
-    CUDA_CHECK(cudaMemset(d.Pixzb, 0, bytesCell));
+    CUDA_CHECK(cudaMemset(d.Pixx, 0, bytesCell));
+    CUDA_CHECK(cudaMemset(d.Pixy, 0, bytesCell));
+    CUDA_CHECK(cudaMemset(d.Piyy, 0, bytesCell));
+    CUDA_CHECK(cudaMemset(d.Piyz, 0, bytesCell));
+    CUDA_CHECK(cudaMemset(d.Pizz, 0, bytesCell));
+    CUDA_CHECK(cudaMemset(d.Pixz, 0, bytesCell));
 
     return d;
 }
@@ -140,19 +119,12 @@ inline void free_device_memory(LbmDevice &d)
     CUDA_CHECK(cudaFree(d.uy));
     CUDA_CHECK(cudaFree(d.uz));
 
-    CUDA_CHECK(cudaFree(d.Pixxr));
-    CUDA_CHECK(cudaFree(d.Pixyr));
-    CUDA_CHECK(cudaFree(d.Piyyr));
-    CUDA_CHECK(cudaFree(d.Piyzr));
-    CUDA_CHECK(cudaFree(d.Pizzr));
-    CUDA_CHECK(cudaFree(d.Pixzr));
-
-    CUDA_CHECK(cudaFree(d.Pixxb));
-    CUDA_CHECK(cudaFree(d.Pixyb));
-    CUDA_CHECK(cudaFree(d.Piyyb));
-    CUDA_CHECK(cudaFree(d.Piyzb));
-    CUDA_CHECK(cudaFree(d.Pizzb));
-    CUDA_CHECK(cudaFree(d.Pixzb));
+    CUDA_CHECK(cudaFree(d.Pixx));
+    CUDA_CHECK(cudaFree(d.Pixy));
+    CUDA_CHECK(cudaFree(d.Piyy));
+    CUDA_CHECK(cudaFree(d.Piyz));
+    CUDA_CHECK(cudaFree(d.Pizz));
+    CUDA_CHECK(cudaFree(d.Pixz));
 
     CUDA_CHECK(cudaFree(d.fir));
     CUDA_CHECK(cudaFree(d.fib));

@@ -7,7 +7,7 @@
 #include "../utilities/types.cuh"
 #include "../utilities/indexing.cuh"
 
-__device__ void bubble_mask(real_t *rho_r, real_t *rho_b,
+__device__ void bubble_mask(real_t *rhor, real_t *rhob,
                             const int x, const int y, const int z)
 {
     const int id = idx(x, y, z);
@@ -18,23 +18,23 @@ __device__ void bubble_mask(real_t *rho_r, real_t *rho_b,
     const real_t dz = static_cast<real_t>(z - bubble_z0);
 
     const real_t is_bubble = static_cast<real_t>(((dx * dx) + (dy * dy) + (dz * dz)) <= (R2));
-    rho_r[id] = (real_t(1.0) - is_bubble) * rho_r0;
-    rho_b[id] = is_bubble * rho_b0;
+    rhor[id] = (real_t(1.0) - is_bubble) * rhor0;
+    rhob[id] = is_bubble * rhob0;
 }
 
-__device__ void init_equilibrium(real_t *f_r, real_t *f_b,
-                                 const real_t *rho_r, const real_t *rho_b,
+__device__ void init_equilibrium(real_t *fr, real_t *fb,
+                                 const real_t *rhor, const real_t *rhob,
                                  const int x, const int y, const int z)
 {
     const int id = idx(x, y, z);
-    const real_t rho_r_i = rho_r[id];
-    const real_t rho_b_i = rho_b[id];
+    const real_t rhor_i = rhor[id];
+    const real_t rhob_i = rhob[id];
 
 #pragma unroll 27
     for (int i = 0; i < Q; ++i)
     {
-        f_r[fidx(id, i)] = d_w[i] * rho_r_i;
-        f_b[fidx(id, i)] = d_w[i] * rho_b_i;
+        fr[fidx(id, i)] = d_w[i] * rhor_i;
+        fb[fidx(id, i)] = d_w[i] * rhob_i;
     }
 }
 

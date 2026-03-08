@@ -13,7 +13,8 @@ __host__ __device__ inline int idx(int x, int y, int z)
 
 __host__ __device__ inline int fidx(int id, int i)
 {
-    return (std::size_t)id * (std::size_t)Q + (std::size_t)i;
+    // return (std::size_t)id * (std::size_t)Q + (std::size_t)i;
+    return (std::size_t)i * (std::size_t)Ncells + (std::size_t)id;
 }
 
 #endif

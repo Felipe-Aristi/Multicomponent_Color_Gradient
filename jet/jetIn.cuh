@@ -10,37 +10,37 @@
 
 // Jet initialization
 
-__device__ void init_density_jet(real_t *f_r, real_t *rho_r, real_t *f_b, real_t *rho_b, int x, int y, int z)
+__device__ void init_density_jet(real_t *fr, real_t *rhor, real_t *fb, real_t *rhob, int x, int y, int z)
 {
 
     const int id = idx(x, y, z);
 
-    rho_r[id] = rho_r0;
-    rho_b[id] = real_t(0.0);
+    rhor[id] = rhor0;
+    rhob[id] = real_t(0.0);
 
 #pragma unroll 27
     for (int i = 0; i < Q; ++i)
     {
-        f_r[fidx(id, i)] = d_w[i] * rho_r0;
-        f_b[fidx(id, i)] = d_w[i] * real_t(0.0);
+        fr[fidx(id, i)] = d_w[i] * rhor0;
+        fb[fidx(id, i)] = d_w[i] * real_t(0.0);
     }
 }
 
-__device__ void jet_mask(real_t *f_r, real_t *rho_r, real_t *f_b, real_t *rho_b, int x, int z)
+__device__ void jet_mask(real_t *fr, real_t *rhor, real_t *fb, real_t *rhob, int x, int z)
 {
 
     const int yB = 0;
     const int id = idx(x, yB, z);
 
     const int is_jet = isJet(x, z);
-    rho_r[id] = (real_t(1.0) - static_cast<real_t>(is_jet)) * rho_r0;
-    rho_b[id] = static_cast<real_t>(is_jet) * rho_b0;
+    rhor[id] = (real_t(1.0) - static_cast<real_t>(is_jet)) * rhor0;
+    rhob[id] = static_cast<real_t>(is_jet) * rhob0;
 
 #pragma unroll 27
     for (int i = 0; i < Q; ++i)
     {
-        f_r[fidx(id, i)] = d_w[i] * rho_r[id];
-        f_b[fidx(id, i)] = d_w[i] * rho_b[id];
+        fr[fidx(id, i)] = d_w[i] * rhor[id];
+        fb[fidx(id, i)] = d_w[i] * rhob[id];
     }
 }
 
