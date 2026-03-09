@@ -6,15 +6,14 @@
 
 #include "../constants.cuh"
 
-__host__ __device__ inline int idx(int x, int y, int z)
+__host__ __device__ [[nodiscard]] inline std::size_t idx(const std::size_t x, const std::size_t y, const std::size_t z) noexcept
 {
     return x + NX * (y + NY * z);
 }
 
-__host__ __device__ inline int fidx(int id, int i)
+__host__ __device__ [[nodiscard]] inline std::size_t fidx(const std::size_t id, const std::size_t i) noexcept
 {
-    // return (std::size_t)id * (std::size_t)Q + (std::size_t)i;
-    return (std::size_t)i * (std::size_t)Ncells + (std::size_t)id;
+    return i * Ncells + id;
 }
 
 #endif

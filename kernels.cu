@@ -57,9 +57,9 @@ __global__ void Mfields(const real_t *fr, real_t *rhor,
                         real_t *Pixx, real_t *Pixy, real_t *Piyy,
                         real_t *Piyz, real_t *Pizz, real_t *Pixz)
 {
-    const int x = threadIdx.x + blockIdx.x * blockDim.x;
-    const int y = threadIdx.y + blockIdx.y * blockDim.y;
-    const int z = threadIdx.z + blockIdx.z * blockDim.z;
+    const std::size_t x = threadIdx.x + blockIdx.x * blockDim.x;
+    const std::size_t y = threadIdx.y + blockIdx.y * blockDim.y;
+    const std::size_t z = threadIdx.z + blockIdx.z * blockDim.z;
 
     if (interior(x, y, z))
     {
@@ -86,15 +86,13 @@ __global__ void ColliStream(real_t *fir, const real_t *rhor,
 
     int id = idx(x, y, z);
 
-    real_t Fxr, Fyr, Fzr, Ar, absforcer;
-    preOmega2(rhor, rhob, x, y, z, taur, taub, Fxr, Fyr, Fzr, absforcer, Ar);
-
-    real_t Fxb, Fyb, Fzb, Ab, absforceb;
-    preOmega2(rhob, rhor, x, y, z, taub, taur, Fxb, Fyb, Fzb, absforceb, Ab);
-
     const real_t rr = rhor[id];
     const real_t rb = rhob[id];
+
     const real_t rT = rr + rb;
+    const real_t invrT = real_t(1 / rT);
+    const real_t aR = real_t(rr * invrT);
+    const real_t aB = real_t(rb * invrT);
 
     const real_t vx = ux[id];
     const real_t vy = uy[id];
@@ -106,6 +104,37 @@ __global__ void ColliStream(real_t *fir, const real_t *rhor,
     const real_t piyz = Piyz[id];
     const real_t pizz = Pizz[id];
     const real_t pixz = Pixz[id];
+
+    const real_t I = real_t(4.0) * rr * rb * invrT * invrT;
+
+    if (I <= real_t(1e-4))
+    {
+#pragma unroll 27
+        for (int i = 0; i < Q; ++i)
+        {
+
+            const real_t gieq = feq(i, rT, vx, vy, vz);
+            const real_t gineqr = fneqr(i, pixx, pixy, piyy, piyz, pizz, pixz);
+
+            const real_t Omega1 = gieq + (real_t(1.0) - omegab) * gineqr;
+
+            const real_t gi = Omega1;
+
+            const int idn = idx(x + d_cx[i], y + d_cy[i], z + d_cz[i]);
+
+            fir[fidx(idn, i)] = aR * gi;
+
+            fib[fidx(idn, i)] = aB * gi;
+        }
+
+        return;
+    }
+
+    real_t Fxr, Fyr, Fzr, Ar, absforcer;
+    preOmega2(rhor, rhob, x, y, z, taur, taub, Fxr, Fyr, Fzr, absforcer, Ar);
+
+    real_t Fxb, Fyb, Fzb, Ab, absforceb;
+    preOmega2(rhob, rhor, x, y, z, taub, taur, Fxb, Fyb, Fzb, absforceb, Ab);
 
 #pragma unroll 27
     for (int i = 0; i < Q; ++i)
@@ -125,9 +154,9 @@ __global__ void ColliStream(real_t *fir, const real_t *rhor,
 
         const int idn = idx(x + d_cx[i], y + d_cy[i], z + d_cz[i]);
 
-        fir[fidx(idn, i)] = real_t(rr / (rr + rb)) * gi + Deltai;
+        fir[fidx(idn, i)] = aR * gi + Deltai;
 
-        fib[fidx(idn, i)] = real_t(rb / (rr + rb)) * gi - Deltai;
+        fib[fidx(idn, i)] = aB * gi - Deltai;
     }
 }
 

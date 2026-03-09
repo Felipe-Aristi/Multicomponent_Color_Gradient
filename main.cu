@@ -74,7 +74,7 @@ int main()
         // output
         if (step % NOUTPUT == 0)
         {
-            CUDA_CHECK(cudaDeviceSynchronize());
+            // CUDA_CHECK(cudaDeviceSynchronize());
 
             write_vtk_step_device(step, d, h);
         }

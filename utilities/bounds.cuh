@@ -3,7 +3,7 @@
 
 #include "../constants.cuh"
 
-__device__ inline bool interior(int x, int y, int z)
+__device__ inline bool interior(const std::size_t x, const std::size_t y, const std::size_t z) noexcept
 {
 
     return (x >= NX || y >= NY || z >= NZ ||
