@@ -36,9 +36,9 @@ __device__ __forceinline__ void inlet_calculation(real_t *fr, real_t *rhor, real
 
     const real_t rT = rhor[idB] + rhob[idB];
 
-    real_t uxb = real_t(0.0);
+    real_t uxb = static_cast<real_t>(0.0);
     real_t uyb = jet_velocity;
-    real_t uzb = real_t(0.0);
+    real_t uzb = static_cast<real_t>(0.0);
 
     const real_t pixx = Pixx[idF];
     const real_t pixy = Pixy[idF];
@@ -47,8 +47,8 @@ __device__ __forceinline__ void inlet_calculation(real_t *fr, real_t *rhor, real
     const real_t pizz = Pizz[idF];
     const real_t pixz = Pixz[idF];
 
-    const real_t aR = rhor[idB] * real_t(1 / rT);
-    const real_t aB = rhob[idB] * real_t(1 / rT);
+    const real_t aR = rhor[idB] * (static_cast<real_t>(1) / rT);
+    const real_t aB = rhob[idB] * (static_cast<real_t>(1) / rT);
 
 #pragma unroll 27
     for (int i = 0; i < Q; ++i)
@@ -63,7 +63,7 @@ __device__ __forceinline__ void inlet_calculation(real_t *fr, real_t *rhor, real
             const real_t gieq = feq(i, rT, uxb, uyb, uzb);
             const real_t gineqr = fneqr(i, pixx, pixy, piyy, piyz, pizz, pixz);
 
-            const real_t gi = gieq + (real_t(1.0) - omegab) * gineqr;
+            const real_t gi = gieq + (static_cast<real_t>(1.0) - omegab) * gineqr;
 
             fr[fidx(fluid_node, i)] = aR * gi;
             fb[fidx(fluid_node, i)] = aB * gi;
@@ -99,7 +99,7 @@ __device__ __forceinline__ void neumann_calculation(real_t *fir, real_t *rhor,
     const real_t pixz = Pixz[idF];
 
     const real_t rhoT = rhor[idB] + rhob[idB];
-    const real_t invRhoT = real_t(1.0) / (rhoT);
+    const real_t invRhoT = static_cast<real_t>(1.0) / (rhoT);
 
     const real_t aR = rhor[idB] * invRhoT;
     const real_t aB = rhob[idB] * invRhoT;
@@ -119,7 +119,7 @@ __device__ __forceinline__ void neumann_calculation(real_t *fir, real_t *rhor,
             const real_t gieq = feq(i, rhoT, ux[idB], uy[idB], uz[idB]);
             const real_t gineqr = fneqr(i, pixx, pixy, piyy, piyz, pizz, pixz);
 
-            const real_t gi = gieq + (real_t(1.0) - omegaMix) * gineqr;
+            const real_t gi = gieq + (static_cast<real_t>(1.0) - omegaMix) * gineqr;
 
             fir[fidx(idDest, i)] = aR * gi;
             fib[fidx(idDest, i)] = aB * gi;

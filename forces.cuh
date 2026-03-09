@@ -34,9 +34,9 @@ __device__ __forceinline__ void force(const real_t *rho_self, const real_t *rho_
         sz += d_w[i] * psi_n * d_cz[i];
     }
 
-    Fx_component = real_t(1 / cs2) * sx;
-    Fy_component = real_t(1 / cs2) * sy;
-    Fz_component = real_t(1 / cs2) * sz;
+    Fx_component = real_t(1) / cs2 * sx;
+    Fy_component = real_t(1) / cs2 * sy;
+    Fz_component = real_t(1) / cs2 * sz;
 }
 
 __device__ __forceinline__ real_t absforce_calcul(const real_t Fx, const real_t Fy, const real_t Fz)
@@ -48,12 +48,12 @@ __device__ __forceinline__ real_t cos2rule(int i, const real_t Fx, const real_t 
 {
     if (i == 0)
     {
-        return real_t(0);
+        return static_cast<real_t>(0);
     }
 
-    if (abs <= real_t(0.0001))
+    if (abs <= static_cast<real_t>(0.0001))
     {
-        return real_t(0);
+        return static_cast<real_t>(0);
     }
 
     real_t Fici = (Fx * d_cx[i] + Fy * d_cy[i] + Fz * d_cz[i]);
@@ -61,19 +61,20 @@ __device__ __forceinline__ real_t cos2rule(int i, const real_t Fx, const real_t 
 
     real_t abs2 = abs * abs;
 
-    return real_t(Fici2 / abs2);
+    return static_cast<real_t>(Fici2 / abs2);
 }
 
 __device__ __forceinline__ real_t tau_interface(const real_t rho_self, const real_t tau_self, const real_t rho_other, const real_t tau_other)
 {
     real_t psix = psi(rho_self, rho_other);
-    real_t tau = real_t((1 + psix) / (2)) * tau_self + real_t((1 - psix) / (2)) * tau_other;
+    real_t tau = real_t((static_cast<real_t>(1) + psix) / static_cast<real_t>(2)) * tau_self +
+                 real_t((static_cast<real_t>(1) - psix) / static_cast<real_t>(2)) * tau_other;
     return tau;
 }
 
 __device__ __forceinline__ real_t A_calculation(const real_t tau)
 {
-    return real_t(1 / (4 * cs4 * tau)) * sigma;
+    return real_t(static_cast<real_t>(1) / (static_cast<real_t>(4) * cs4 * tau)) * sigma;
 }
 
 __device__ __forceinline__ void preOmega2(const real_t *rho_self,

@@ -21,7 +21,7 @@ __device__ __forceinline__ real_t feq(const int i, const real_t rho, const real_
     real_t usq = ux * ux + uy * uy + uz * uz;
     real_t A2eq = (cu / cs2) + (cu * cu) / (2 * cs4) - (usq / (2 * cs2));
 
-    return wi * rho * (real_t(1.0) + A2eq);
+    return wi * rho * (static_cast<real_t>(1.0) + A2eq);
 }
 
 __device__ __forceinline__ real_t fneqr(const int i, const real_t Pixx, const real_t Pixy, const real_t Piyy,
@@ -48,12 +48,12 @@ __device__ __forceinline__ void Mfields_calculation(const real_t *fr, real_t *rh
 
     const int id = idx(x, y, z);
 
-    real_t sumr = real_t(0.0);
-    real_t sumb = real_t(0.0);
+    real_t sumr = static_cast<real_t>(0.0);
+    real_t sumb = static_cast<real_t>(0.0);
 
-    real_t jx = real_t(0.0);
-    real_t jy = real_t(0.0);
-    real_t jz = real_t(0.0);
+    real_t jx = static_cast<real_t>(0.0);
+    real_t jy = static_cast<real_t>(0.0);
+    real_t jz = static_cast<real_t>(0.0);
 
 #pragma unroll 27
     for (int i = 0; i < Q; ++i)
@@ -89,12 +89,12 @@ __device__ __forceinline__ void Mfields_calculation(const real_t *fr, real_t *rh
     uy[id] = vy;
     uz[id] = vz;
 
-    real_t pixx = real_t(0.0);
-    real_t pixy = real_t(0.0);
-    real_t piyy = real_t(0.0);
-    real_t piyz = real_t(0.0);
-    real_t pizz = real_t(0.0);
-    real_t pixz = real_t(0.0);
+    real_t pixx = static_cast<real_t>(0.0);
+    real_t pixy = static_cast<real_t>(0.0);
+    real_t piyy = static_cast<real_t>(0.0);
+    real_t piyz = static_cast<real_t>(0.0);
+    real_t pizz = static_cast<real_t>(0.0);
+    real_t pixz = static_cast<real_t>(0.0);
 
 #pragma unroll 27
     for (int i = 0; i < Q; ++i)

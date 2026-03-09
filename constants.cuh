@@ -5,13 +5,13 @@
 #include "utilities/types.cuh"
 
 // Steps
-inline constexpr int NSTEP = 5000;
-inline constexpr int NOUTPUT = 200;
+inline constexpr int NSTEP = 20000;
+inline constexpr int NOUTPUT = 2000;
 
 // Grid
-inline constexpr std::size_t NX = 32;
-inline constexpr std::size_t NZ = 32;
-inline constexpr std::size_t NY = 32;
+inline constexpr std::size_t NX = 64;
+inline constexpr std::size_t NZ = 64;
+inline constexpr std::size_t NY = 256;
 inline constexpr std::size_t Ncells = NX * NY * NZ;
 
 // VELOCITY SET D2Q27 definition
@@ -24,13 +24,13 @@ inline constexpr std::size_t bytesCell = Ncells * sizeof(real_t);
 inline constexpr std::size_t bytesF = fSize * sizeof(real_t);
 
 // Jet parameters
-inline constexpr real_t jet_radius = 3.0;
+inline constexpr real_t jet_radius = 10.0;
 inline constexpr real_t jet_x0 = NX / 2.0;
 inline constexpr real_t jet_z0 = NZ / 2.0;
 inline constexpr real_t jet_velocity = 0.0465;
 
 // Bubble parameters
-inline constexpr real_t bubble_radius = 8.0;
+inline constexpr real_t bubble_radius = 10.0;
 inline constexpr real_t bubble_x0 = NX / 2.0;
 inline constexpr real_t bubble_y0 = NY / 2.0;
 inline constexpr real_t bubble_z0 = NZ / 2.0;
@@ -42,7 +42,7 @@ inline constexpr real_t cs4 = cs2 * cs2;
 inline constexpr real_t rhor0 = static_cast<real_t>(1);
 inline constexpr real_t rhob0 = static_cast<real_t>(0.95);
 
-inline constexpr real_t Re = static_cast<real_t>(5000);
+inline constexpr real_t Re = static_cast<real_t>(6000);
 inline constexpr real_t nu = static_cast<real_t>(2 * jet_radius * jet_velocity) / Re;
 
 inline constexpr real_t taur = static_cast<real_t>(0.5) + nu / (cs2); // static_cast<real_t>(0.6)

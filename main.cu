@@ -18,8 +18,6 @@ int main()
     CUDA_CHECK(cudaGetDeviceProperties(&prop, 0));
     std::cout << "GPU: " << prop.name << "\n";
 
-    stencil();
-
     CudaConfig cfg = make_cudaConfig();
     std::cout << "block=(" << cfg.block.x << "," << cfg.block.y << "," << cfg.block.z << ")\n";
     std::cout << "grid =(" << cfg.grid.x << "," << cfg.grid.y << "," << cfg.grid.z << ")\n";
