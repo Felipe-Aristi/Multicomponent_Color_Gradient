@@ -27,8 +27,12 @@ __device__ __forceinline__ real_t feq(const int i, const real_t rho, const real_
 __device__ __forceinline__ real_t fneqr(const int i, const real_t Pixx, const real_t Pixy, const real_t Piyy,
                                         const real_t Piyz, const real_t Pizz, const real_t Pixz)
 {
-    real_t Hxx, Hxy, Hyy, Hyz, Hzz, Hxz;
-    H2(i, Hxx, Hxy, Hyy, Hyz, Hzz, Hxz);
+    const real_t Hxx = d_Hxx[i];
+    const real_t Hxy = d_Hxy[i];
+    const real_t Hyy = d_Hyy[i];
+    const real_t Hyz = d_Hyz[i];
+    const real_t Hzz = d_Hzz[i];
+    const real_t Hxz = d_Hxz[i];
 
     const real_t wi = static_cast<real_t>(d_w[i]);
 
@@ -55,6 +59,13 @@ __device__ __forceinline__ void Mfields_calculation(const real_t *fr, real_t *rh
     real_t jy = static_cast<real_t>(0.0);
     real_t jz = static_cast<real_t>(0.0);
 
+    real_t Axx = static_cast<real_t>(0.0);
+    real_t Axy = static_cast<real_t>(0.0);
+    real_t Ayy = static_cast<real_t>(0.0);
+    real_t Ayz = static_cast<real_t>(0.0);
+    real_t Azz = static_cast<real_t>(0.0);
+    real_t Axz = static_cast<real_t>(0.0);
+
 #pragma unroll 27
     for (int i = 0; i < Q; ++i)
     {
@@ -62,18 +73,32 @@ __device__ __forceinline__ void Mfields_calculation(const real_t *fr, real_t *rh
         const real_t fr_i = fr[fidx(id, i)];
         const real_t fb_i = fb[fidx(id, i)];
 
+        sumr += fr_i;
+        sumb += fb_i;
+
         const real_t gi = fr_i + fb_i;
 
         const real_t cx = static_cast<real_t>(d_cx[i]);
         const real_t cy = static_cast<real_t>(d_cy[i]);
         const real_t cz = static_cast<real_t>(d_cz[i]);
 
-        sumr += fr_i;
-        sumb += fb_i;
-
         jx += gi * cx;
         jy += gi * cy;
         jz += gi * cz;
+
+        const real_t Hxx = d_Hxx[i];
+        const real_t Hxy = d_Hxy[i];
+        const real_t Hyy = d_Hyy[i];
+        const real_t Hyz = d_Hyz[i];
+        const real_t Hzz = d_Hzz[i];
+        const real_t Hxz = d_Hxz[i];
+
+        Axx += gi * Hxx;
+        Axy += gi * Hxy;
+        Ayy += gi * Hyy;
+        Ayz += gi * Hyz;
+        Azz += gi * Hzz;
+        Axz += gi * Hxz;
     }
 
     rhor[id] = sumr;
@@ -89,40 +114,12 @@ __device__ __forceinline__ void Mfields_calculation(const real_t *fr, real_t *rh
     uy[id] = vy;
     uz[id] = vz;
 
-    real_t pixx = static_cast<real_t>(0.0);
-    real_t pixy = static_cast<real_t>(0.0);
-    real_t piyy = static_cast<real_t>(0.0);
-    real_t piyz = static_cast<real_t>(0.0);
-    real_t pizz = static_cast<real_t>(0.0);
-    real_t pixz = static_cast<real_t>(0.0);
-
-#pragma unroll 27
-    for (int i = 0; i < Q; ++i)
-    {
-        const real_t fir = fr[fidx(id, i)];
-        const real_t fib = fb[fidx(id, i)];
-
-        const real_t gieq = feq(i, rhogi, vx, vy, vz);
-
-        const real_t gi_neq = (fir + fib) - gieq;
-
-        real_t Hxx, Hxy, Hyy, Hyz, Hzz, Hxz;
-        H2(i, Hxx, Hxy, Hyy, Hyz, Hzz, Hxz);
-
-        pixx += gi_neq * Hxx;
-        pixy += gi_neq * Hxy;
-        piyy += gi_neq * Hyy;
-        piyz += gi_neq * Hyz;
-        pizz += gi_neq * Hzz;
-        pixz += gi_neq * Hxz;
-    }
-
-    Pixx[id] = pixx;
-    Pixy[id] = pixy;
-    Piyy[id] = piyy;
-    Piyz[id] = piyz;
-    Pizz[id] = pizz;
-    Pixz[id] = pixz;
+    Pixx[id] = Axx - rhogi * vx * vx;
+    Pixy[id] = Axy - rhogi * vx * vy;
+    Piyy[id] = Ayy - rhogi * vy * vy;
+    Piyz[id] = Ayz - rhogi * vy * vz;
+    Pizz[id] = Azz - rhogi * vz * vz;
+    Pixz[id] = Axz - rhogi * vx * vz;
 }
 
 #endif

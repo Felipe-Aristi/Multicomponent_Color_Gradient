@@ -9,34 +9,34 @@
 #include "utilities/mathUtilities.cuh"
 
 __device__ __forceinline__ void force(const real_t *rho_self, const real_t *rho_other,
-                                      const int x, const int y, const int z,
+                                      const size_t x, const size_t y, const size_t z,
                                       real_t &Fx_component, real_t &Fy_component, real_t &Fz_component)
 {
-    real_t sx = real_t(0.0);
-    real_t sy = real_t(0.0);
-    real_t sz = real_t(0.0);
+    real_t sx = static_cast<real_t>(0.0);
+    real_t sy = static_cast<real_t>(0.0);
+    real_t sz = static_cast<real_t>(0.0);
 
 #pragma unroll 27
     for (int i = 1; i < Q; ++i)
     {
 
-        int idn = idx(x + d_cx[i], y + d_cy[i], z + d_cz[i]);
+        const real_t cx = static_cast<real_t>(d_cx[i]);
+        const real_t cy = static_cast<real_t>(d_cy[i]);
+        const real_t cz = static_cast<real_t>(d_cz[i]);
+        const real_t wi = static_cast<real_t>(d_w[i]);
 
-        /*         const int xn = wrapx(x + d_cx[i]);
-                const int yn = wrapy(y + d_cy[i]);
-                const int zn = wrapz(z + d_cz[i]);
-                const int idn = idx(xn, yn, zn); */
+        int idn = idx(x + d_cx[i], y + d_cy[i], z + d_cz[i]);
 
         real_t psi_n = psi(rho_self[idn], rho_other[idn]);
 
-        sx += d_w[i] * psi_n * d_cx[i];
-        sy += d_w[i] * psi_n * d_cy[i];
-        sz += d_w[i] * psi_n * d_cz[i];
+        sx += wi * psi_n * cx;
+        sy += wi * psi_n * cy;
+        sz += wi * psi_n * cz;
     }
 
-    Fx_component = real_t(1) / cs2 * sx;
-    Fy_component = real_t(1) / cs2 * sy;
-    Fz_component = real_t(1) / cs2 * sz;
+    Fx_component = static_cast<real_t>(1) / cs2 * sx;
+    Fy_component = static_cast<real_t>(1) / cs2 * sy;
+    Fz_component = static_cast<real_t>(1) / cs2 * sz;
 }
 
 __device__ __forceinline__ real_t absforce_calcul(const real_t Fx, const real_t Fy, const real_t Fz)
@@ -56,7 +56,7 @@ __device__ __forceinline__ real_t cos2rule(int i, const real_t Fx, const real_t 
         return static_cast<real_t>(0);
     }
 
-    real_t Fici = (Fx * d_cx[i] + Fy * d_cy[i] + Fz * d_cz[i]);
+    real_t Fici = Fx * static_cast<real_t>(d_cx[i]) + Fy * static_cast<real_t>(d_cy[i]) + Fz * static_cast<real_t>(d_cz[i]);
     real_t Fici2 = Fici * Fici;
 
     real_t abs2 = abs * abs;

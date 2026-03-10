@@ -109,9 +109,13 @@ __global__ void ColliStream(real_t *fir, const real_t *rhor, real_t *fib, const 
         {
             const real_t gieq = feq(i, rT, vx, vy, vz);
             const real_t gineqr = fneqr(i, pixx, pixy, piyy, piyz, pizz, pixz);
+
             const real_t Omega1 = gieq + (real_t(1.0) - omegab) * gineqr;
+
             const real_t gi = Omega1;
+
             const int idn = idx(x + d_cx[i], y + d_cy[i], z + d_cz[i]);
+
             fir[fidx(idn, i)] = aR * gi;
             fib[fidx(idn, i)] = aB * gi;
         }
@@ -120,6 +124,7 @@ __global__ void ColliStream(real_t *fir, const real_t *rhor, real_t *fib, const 
 
     real_t Fxr, Fyr, Fzr, Ar, absforcer;
     preOmega2(rhor, rhob, x, y, z, taur, taub, Fxr, Fyr, Fzr, absforcer, Ar);
+
     real_t Fxb, Fyb, Fzb, Ab, absforceb;
     preOmega2(rhob, rhor, x, y, z, taub, taur, Fxb, Fyb, Fzb, absforceb, Ab);
 
