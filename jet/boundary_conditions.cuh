@@ -13,18 +13,20 @@
 
 // inlet boundary condition
 
-__device__ __forceinline__ void inlet_calculation(real_t *fr, real_t *rhor, real_t *fb, real_t *rhob,
-                                                  const real_t *Pixx, const real_t *Pixy, const real_t *Piyy, const real_t *Piyz, const real_t *Pizz, const real_t *Pixz,
-                                                  int x, int z)
+__device__ __forceinline__ void inlet_calculation(real_t __restrict__ *fr, real_t __restrict__ *rhor,
+                                                  real_t __restrict__ *fb, real_t __restrict__ *rhob,
+                                                  const real_t __restrict__ *Pixx, const real_t __restrict__ *Pixy, const real_t __restrict__ *Piyy,
+                                                  const real_t __restrict__ *Piyz, const real_t __restrict__ *Pizz, const real_t __restrict__ *Pixz,
+                                                  const label_t x, const label_t z)
 {
 
-    const int yB = 0;
-    const int yF = 1;
+    const label_t yB = 0;
+    const label_t yF = 1;
 
-    const int idB = idx(x, yB, z);
-    const int idF = idx(x, yF, z);
+    const label_t idB = idx(x, yB, z);
+    const label_t idF = idx(x, yF, z);
 
-    const int is_jet = isJet(x, z);
+    const label_t is_jet = isJet(x, z);
 
     rhor[idB] = (real_t(1.0) - static_cast<real_t>(is_jet)) * rhor0;
     rhob[idB] = static_cast<real_t>(is_jet) * rhob0;
@@ -51,14 +53,14 @@ __device__ __forceinline__ void inlet_calculation(real_t *fr, real_t *rhor, real
     const real_t aB = rhob[idB] * (static_cast<real_t>(1) / rT);
 
 #pragma unroll 27
-    for (int i = 0; i < Q; ++i)
+    for (label_t i = 0; i < Q; ++i)
     {
         if (d_cy[i] == 1)
         {
-            const int xn = x + d_cx[i];
-            const int zn = z + d_cz[i];
+            const label_t xn = x + d_cx[i];
+            const label_t zn = z + d_cz[i];
 
-            int fluid_node = idx(xn, yF, zn);
+            label_t fluid_node = idx(xn, yF, zn);
 
             const real_t gieq = feq(i, rT, uxb, uyb, uzb);
             const real_t gineqr = fneqr(i, pixx, pixy, piyy, piyz, pizz, pixz);
@@ -73,17 +75,18 @@ __device__ __forceinline__ void inlet_calculation(real_t *fr, real_t *rhor, real
 
 // outlet boundary condition
 
-__device__ __forceinline__ void neumann_calculation(real_t *fir, real_t *rhor,
-                                                    real_t *fib, real_t *rhob,
-                                                    real_t *ux, real_t *uy, real_t *uz,
-                                                    const real_t *Pixx, const real_t *Pixy, const real_t *Piyy, const real_t *Piyz, const real_t *Pizz, const real_t *Pixz,
-                                                    int x, int z)
+__device__ __forceinline__ void neumann_calculation(real_t __restrict__ *fir, real_t __restrict__ *rhor,
+                                                    real_t __restrict__ *fib, real_t __restrict__ *rhob,
+                                                    real_t __restrict__ *ux, real_t __restrict__ *uy, real_t __restrict__ *uz,
+                                                    const real_t __restrict__ *Pixx, const real_t __restrict__ *Pixy, const real_t __restrict__ *Piyy,
+                                                    const real_t __restrict__ *Piyz, const real_t __restrict__ *Pizz, const real_t __restrict__ *Pixz,
+                                                    const label_t x, const label_t z)
 {
-    const int yB = NY - 1;
-    const int yF = NY - 2;
+    const label_t yB = NY - 1;
+    const label_t yF = NY - 2;
 
-    const int idB = idx(x, yB, z);
-    const int idF = idx(x, yF, z);
+    const label_t idB = idx(x, yB, z);
+    const label_t idF = idx(x, yF, z);
 
     rhor[idB] = rhor[idF];
     rhob[idB] = rhob[idF];
@@ -107,14 +110,14 @@ __device__ __forceinline__ void neumann_calculation(real_t *fir, real_t *rhor,
     const real_t omegaMix = omegar;
 
 #pragma unroll 27
-    for (int i = 0; i < Q; ++i)
+    for (label_t i = 0; i < Q; ++i)
     {
         if (d_cy[i] == -1)
         {
-            const int xn = x + d_cx[i];
-            const int zn = z + d_cz[i];
+            const label_t xn = x + d_cx[i];
+            const label_t zn = z + d_cz[i];
 
-            const int idDest = idx(xn, yF, zn);
+            const label_t idDest = idx(xn, yF, zn);
 
             const real_t gieq = feq(i, rhoT, ux[idB], uy[idB], uz[idB]);
             const real_t gineqr = fneqr(i, pixx, pixy, piyy, piyz, pizz, pixz);

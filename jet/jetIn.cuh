@@ -9,35 +9,38 @@
 #include "../stencil.cuh"
 
 // Jet initialization
-
-__device__ void init_density_jet(real_t *fr, real_t *rhor, real_t *fb, real_t *rhob, int x, int y, int z)
+__device__ void init_density_jet(real_t __restrict__ *fr, real_t __restrict__ *rhor,
+                                 real_t __restrict__ *fb, real_t __restrict__ *rhob,
+                                 const label_t x, const label_t y, const label_t z)
 {
 
-    const int id = idx(x, y, z);
+    const label_t id = idx(x, y, z);
 
     rhor[id] = rhor0;
     rhob[id] = real_t(0.0);
 
 #pragma unroll 27
-    for (int i = 0; i < Q; ++i)
+    for (label_t i = 0; i < Q; ++i)
     {
         fr[fidx(id, i)] = d_w[i] * rhor0;
         fb[fidx(id, i)] = d_w[i] * real_t(0.0);
     }
 }
 
-__device__ void jet_mask(real_t *fr, real_t *rhor, real_t *fb, real_t *rhob, int x, int z)
+__device__ void jet_mask(real_t __restrict__ *fr, real_t __restrict__ *rhor,
+                         real_t __restrict__ *fb, real_t __restrict__ *rhob,
+                         const label_t x, const label_t z)
 {
 
-    const int yB = 0;
-    const int id = idx(x, yB, z);
+    const label_t yB = 0;
+    const label_t id = idx(x, yB, z);
 
-    const int is_jet = isJet(x, z);
+    const label_t is_jet = isJet(x, z);
     rhor[id] = (real_t(1.0) - static_cast<real_t>(is_jet)) * rhor0;
     rhob[id] = static_cast<real_t>(is_jet) * rhob0;
 
 #pragma unroll 27
-    for (int i = 0; i < Q; ++i)
+    for (label_t i = 0; i < Q; ++i)
     {
         fr[fidx(id, i)] = d_w[i] * rhor[id];
         fb[fidx(id, i)] = d_w[i] * rhob[id];

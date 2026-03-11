@@ -3,7 +3,7 @@
 
 #include "../constants.cuh"
 
-__device__ inline bool interior(int x, int y, int z)
+__device__ [[nodiscard]] constexpr inline bool interior(const label_t x, const label_t y, const label_t z) noexcept
 {
 
     return (x >= NX || y >= NY || z >= NZ ||
@@ -12,7 +12,7 @@ __device__ inline bool interior(int x, int y, int z)
             z == 0 || z == NZ - 1);
 }
 
-__device__ inline bool inlet_oulet_interior(int x, int z)
+__device__ [[nodiscard]] constexpr inline bool inlet_oulet_interior(const label_t x, const label_t z) noexcept
 {
     return (x >= NX || z >= NZ ||
             x == 0 || x == NX - 1 ||

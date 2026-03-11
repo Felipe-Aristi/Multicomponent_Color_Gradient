@@ -10,7 +10,7 @@
 
 //----------- Distribution functions -----------
 
-__device__ __forceinline__ real_t feq(const int i, const real_t rho, const real_t ux, const real_t uy, const real_t uz)
+__device__ __forceinline__ real_t feq(const label_t i, const real_t rho, const real_t ux, const real_t uy, const real_t uz) noexcept
 {
     const real_t cx = static_cast<real_t>(d_cx[i]);
     const real_t cy = static_cast<real_t>(d_cy[i]);
@@ -24,8 +24,8 @@ __device__ __forceinline__ real_t feq(const int i, const real_t rho, const real_
     return wi * rho * (static_cast<real_t>(1.0) + A2eq);
 }
 
-__device__ __forceinline__ real_t fneqr(const int i, const real_t Pixx, const real_t Pixy, const real_t Piyy,
-                                        const real_t Piyz, const real_t Pizz, const real_t Pixz)
+__device__ __forceinline__ real_t fneqr(const label_t i, const real_t Pixx, const real_t Pixy, const real_t Piyy,
+                                        const real_t Piyz, const real_t Pizz, const real_t Pixz) noexcept
 {
     const real_t Hxx = d_Hxx[i];
     const real_t Hxy = d_Hxy[i];
@@ -42,12 +42,12 @@ __device__ __forceinline__ real_t fneqr(const int i, const real_t Pixx, const re
 
 //--------------------
 
-__device__ __forceinline__ void Mfields_calculation(const real_t *fr, real_t *rhor,
-                                                    const real_t *fb, real_t *rhob,
-                                                    real_t *ux, real_t *uy, real_t *uz,
-                                                    real_t *Pixx, real_t *Pixy, real_t *Piyy,
-                                                    real_t *Piyz, real_t *Pizz, real_t *Pixz,
-                                                    const int x, const int y, const int z)
+__device__ __forceinline__ void Mfields_calculation(const real_t __restrict__ *fr, real_t __restrict__ *rhor,
+                                                    const real_t __restrict__ *fb, real_t __restrict__ *rhob,
+                                                    real_t __restrict__ *ux, real_t __restrict__ *uy, real_t __restrict__ *uz,
+                                                    real_t __restrict__ *Pixx, real_t __restrict__ *Pixy, real_t __restrict__ *Piyy,
+                                                    real_t __restrict__ *Piyz, real_t __restrict__ *Pizz, real_t __restrict__ *Pixz,
+                                                    const label_t x, const label_t y, const label_t z)
 {
 
     const int id = idx(x, y, z);
@@ -66,7 +66,7 @@ __device__ __forceinline__ void Mfields_calculation(const real_t *fr, real_t *rh
     real_t Azz = static_cast<real_t>(0.0);
     real_t Axz = static_cast<real_t>(0.0);
 
-#pragma unroll 27
+#pragma unroll 27   
     for (int i = 0; i < Q; ++i)
     {
 

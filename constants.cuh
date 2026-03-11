@@ -5,13 +5,13 @@
 #include "utilities/types.cuh"
 
 // Steps
-inline constexpr int NSTEP = 50000;
-inline constexpr int NOUTPUT = 2000;
+inline constexpr int NSTEP = 1;
+inline constexpr int NOUTPUT = 100;
 
 // Grid
 inline constexpr std::size_t NX = 128;
 inline constexpr std::size_t NZ = 128;
-inline constexpr std::size_t NY = 320;
+inline constexpr std::size_t NY = 128;
 inline constexpr std::size_t Ncells = NX * NY * NZ;
 
 // VELOCITY SET D2Q27 definition

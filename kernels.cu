@@ -8,9 +8,9 @@
 
 __global__ void bubble(real_t *fr, real_t *fb, real_t *rhor, real_t *rhob)
 {
-    const int x = threadIdx.x + blockIdx.x * blockDim.x;
-    const int y = threadIdx.y + blockIdx.y * blockDim.y;
-    const int z = threadIdx.z + blockIdx.z * blockDim.z;
+    const label_t x = threadIdx.x + blockIdx.x * blockDim.x;
+    const label_t y = threadIdx.y + blockIdx.y * blockDim.y;
+    const label_t z = threadIdx.z + blockIdx.z * blockDim.z;
 
     if (x >= NX || y >= NY || z >= NZ)
     {
@@ -22,11 +22,12 @@ __global__ void bubble(real_t *fr, real_t *fb, real_t *rhor, real_t *rhob)
     init_equilibrium(fr, fb, rhor, rhob, x, y, z);
 }
 
-__global__ void jetDensity(real_t *fr, real_t *fb, real_t *rhor, real_t *rhob)
+__global__ void jetDensity(real_t __restrict__ *fr, real_t __restrict__ *fb,
+                           real_t __restrict__ *rhor, real_t __restrict__ *rhob)
 {
-    const int x = threadIdx.x + blockIdx.x * blockDim.x;
-    const int y = threadIdx.y + blockIdx.y * blockDim.y;
-    const int z = threadIdx.z + blockIdx.z * blockDim.z;
+    const label_t x = threadIdx.x + blockIdx.x * blockDim.x;
+    const label_t y = threadIdx.y + blockIdx.y * blockDim.y;
+    const label_t z = threadIdx.z + blockIdx.z * blockDim.z;
 
     if (x >= NX || y >= NY || z >= NZ)
     {
@@ -36,10 +37,11 @@ __global__ void jetDensity(real_t *fr, real_t *fb, real_t *rhor, real_t *rhob)
     init_density_jet(fr, rhor, fb, rhob, x, y, z);
 }
 
-__global__ void Injet(real_t *fr, real_t *fb, real_t *rhor, real_t *rhob)
+__global__ void Injet(real_t __restrict__ *fr, real_t __restrict__ *fb,
+                      real_t __restrict__ *rhor, real_t __restrict__ *rhob)
 {
-    const int x = threadIdx.x + blockIdx.x * blockDim.x;
-    const int z = threadIdx.y + blockIdx.y * blockDim.y;
+    const label_t x = threadIdx.x + blockIdx.x * blockDim.x;
+    const label_t z = threadIdx.y + blockIdx.y * blockDim.y;
 
     if (inlet_oulet_interior(x, z))
     {
@@ -51,15 +53,15 @@ __global__ void Injet(real_t *fr, real_t *fb, real_t *rhor, real_t *rhob)
 
 //--------------- Main loop ----------------
 
-__global__ void Mfields(const real_t *fr, real_t *rhor,
-                        const real_t *fb, real_t *rhob,
-                        real_t *ux, real_t *uy, real_t *uz,
-                        real_t *Pixx, real_t *Pixy, real_t *Piyy,
-                        real_t *Piyz, real_t *Pizz, real_t *Pixz)
+__global__ void Mfields(const __restrict__ real_t *fr, real_t __restrict__ *rhor,
+                        const real_t __restrict__ *fb, real_t __restrict__ *rhob,
+                        real_t __restrict__ *ux, real_t __restrict__ *uy, real_t __restrict__ *uz,
+                        real_t __restrict__ *Pixx, real_t __restrict__ *Pixy, real_t __restrict__ *Piyy,
+                        real_t __restrict__ *Piyz, real_t __restrict__ *Pizz, real_t __restrict__ *Pixz)
 {
-    const int x = threadIdx.x + blockIdx.x * blockDim.x;
-    const int y = threadIdx.y + blockIdx.y * blockDim.y;
-    const int z = threadIdx.z + blockIdx.z * blockDim.z;
+    const label_t x = threadIdx.x + blockIdx.x * blockDim.x;
+    const label_t y = threadIdx.y + blockIdx.y * blockDim.y;
+    const label_t z = threadIdx.z + blockIdx.z * blockDim.z;
 
     if (interior(x, y, z))
     {
@@ -69,18 +71,21 @@ __global__ void Mfields(const real_t *fr, real_t *rhor,
     Mfields_calculation(fr, rhor, fb, rhob, ux, uy, uz, Pixx, Pixy, Piyy, Piyz, Pizz, Pixz, x, y, z);
 }
 
-__global__ void ColliStream(real_t *fir, const real_t *rhor, real_t *fib, const real_t *rhob, const real_t *ux, const real_t *uy, const real_t *uz, const real_t *Pixx, const real_t *Pixy, const real_t *Piyy, const real_t *Piyz, const real_t *Pizz, const real_t *Pixz)
+__global__ void ColliStream(real_t __restrict__ *fir, const real_t __restrict__ *rhor, real_t __restrict__ *fib, const real_t __restrict__ *rhob,
+                            const real_t __restrict__ *ux, const real_t __restrict__ *uy, const real_t __restrict__ *uz,
+                            const real_t __restrict__ *Pixx, const real_t __restrict__ *Pixy, const real_t __restrict__ *Piyy,
+                            const real_t __restrict__ *Piyz, const real_t __restrict__ *Pizz, const real_t __restrict__ *Pixz)
 {
-    const int x = threadIdx.x + blockIdx.x * blockDim.x;
-    const int y = threadIdx.y + blockIdx.y * blockDim.y;
-    const int z = threadIdx.z + blockIdx.z * blockDim.z;
+    const label_t x = threadIdx.x + blockIdx.x * blockDim.x;
+    const label_t y = threadIdx.y + blockIdx.y * blockDim.y;
+    const label_t z = threadIdx.z + blockIdx.z * blockDim.z;
 
     if (interior(x, y, z))
     {
         return;
     }
 
-    int id = idx(x, y, z);
+    const label_t id = idx(x, y, z);
 
     const real_t rr = rhor[id];
     const real_t rb = rhob[id];
@@ -105,7 +110,7 @@ __global__ void ColliStream(real_t *fir, const real_t *rhor, real_t *fib, const 
     if (I <= real_t(1e-4))
     {
 #pragma unroll 27
-        for (int i = 0; i < Q; ++i)
+        for (label_t i = 0; i < Q; ++i)
         {
             const real_t gieq = feq(i, rT, vx, vy, vz);
             const real_t gineqr = fneqr(i, pixx, pixy, piyy, piyz, pizz, pixz);
@@ -139,7 +144,7 @@ __global__ void ColliStream(real_t *fir, const real_t *rhor, real_t *fib, const 
         const real_t Omega2R = Omega2(i, rr, taur, rb, taub, Fxr, Fyr, Fzr, absforcer, Ar);
         const real_t Omega2B = Omega2(i, rb, taub, rr, taur, Fxb, Fyb, Fzb, absforceb, Ab);
 
-        const real_t gi = Omega1 + Omega2R + Omega2B;
+        const real_t gi = Omega1 + Omega2R + Omega2B; //
 
         const real_t Deltai = recolorDelta(i, rr, rb, Fxr, Fyr, Fzr, absforcer);
 
@@ -152,12 +157,14 @@ __global__ void ColliStream(real_t *fir, const real_t *rhor, real_t *fib, const 
 
 //----------------- Boundary conditions -------------------------
 
-__global__ void inlet(real_t *fr, real_t *rhor, real_t *fb, real_t *rhob,
-                      const real_t *Pixx, const real_t *Pixy, const real_t *Piyy, const real_t *Piyz, const real_t *Pizz, const real_t *Pixz)
+__global__ void inlet(real_t __restrict__ *fr, real_t __restrict__ *rhor,
+                      real_t __restrict__ *fb, real_t __restrict__ *rhob,
+                      const real_t __restrict__ *Pixx, const real_t __restrict__ *Pixy, const real_t __restrict__ *Piyy,
+                      const real_t __restrict__ *Piyz, const real_t __restrict__ *Pizz, const real_t __restrict__ *Pixz)
 {
 
-    const int x = blockIdx.x * blockDim.x + threadIdx.x;
-    const int z = blockIdx.y * blockDim.y + threadIdx.y;
+    const label_t x = blockIdx.x * blockDim.x + threadIdx.x;
+    const label_t z = blockIdx.y * blockDim.y + threadIdx.y;
 
     if (inlet_oulet_interior(x, z))
     {
@@ -167,14 +174,15 @@ __global__ void inlet(real_t *fr, real_t *rhor, real_t *fb, real_t *rhob,
     inlet_calculation(fr, rhor, fb, rhob, Pixx, Pixy, Piyy, Piyz, Pizz, Pixz, x, z);
 }
 
-__global__ void neumann(real_t *fir, real_t *rhor,
-                        real_t *fib, real_t *rhob,
-                        real_t *ux, real_t *uy, real_t *uz,
-                        const real_t *Pixx, const real_t *Pixy, const real_t *Piyy, const real_t *Piyz, const real_t *Pizz, const real_t *Pixz)
+__global__ void neumann(real_t __restrict__ *fir, real_t __restrict__ *rhor,
+                        real_t __restrict__ *fib, real_t __restrict__ *rhob,
+                        real_t __restrict__ *ux, real_t __restrict__ *uy, real_t __restrict__ *uz,
+                        const real_t __restrict__ *Pixx, const real_t __restrict__ *Pixy, const real_t __restrict__ *Piyy,
+                        const real_t __restrict__ *Piyz, const real_t __restrict__ *Pizz, const real_t __restrict__ *Pixz)
 {
 
-    const int x = blockIdx.x * blockDim.x + threadIdx.x;
-    const int z = blockIdx.y * blockDim.y + threadIdx.y;
+    const label_t x = blockIdx.x * blockDim.x + threadIdx.x;
+    const label_t z = blockIdx.y * blockDim.y + threadIdx.y;
 
     if (inlet_oulet_interior(x, z))
     {

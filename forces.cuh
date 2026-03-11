@@ -17,7 +17,7 @@ __device__ __forceinline__ void force(const real_t *rho_self, const real_t *rho_
     real_t sz = static_cast<real_t>(0.0);
 
 #pragma unroll 27
-    for (int i = 1; i < Q; ++i)
+    for (label_t i = 1; i < Q; ++i)
     {
 
         const real_t cx = static_cast<real_t>(d_cx[i]);
@@ -25,7 +25,7 @@ __device__ __forceinline__ void force(const real_t *rho_self, const real_t *rho_
         const real_t cz = static_cast<real_t>(d_cz[i]);
         const real_t wi = static_cast<real_t>(d_w[i]);
 
-        int idn = idx(x + d_cx[i], y + d_cy[i], z + d_cz[i]);
+        label_t idn = idx(x + d_cx[i], y + d_cy[i], z + d_cz[i]);
 
         real_t psi_n = psi(rho_self[idn], rho_other[idn]);
 
@@ -39,12 +39,12 @@ __device__ __forceinline__ void force(const real_t *rho_self, const real_t *rho_
     Fz_component = static_cast<real_t>(1) / cs2 * sz;
 }
 
-__device__ __forceinline__ real_t absforce_calcul(const real_t Fx, const real_t Fy, const real_t Fz)
+__device__ __forceinline__ real_t absforce_calcul(const real_t Fx, const real_t Fy, const real_t Fz) noexcept
 {
     return sqrt(Fx * Fx + Fy * Fy + Fz * Fz);
 }
 
-__device__ __forceinline__ real_t cos2rule(int i, const real_t Fx, const real_t Fy, const real_t Fz, const real_t abs)
+__device__ __forceinline__ real_t cos2rule(const label_t i, const real_t Fx, const real_t Fy, const real_t Fz, const real_t abs) noexcept
 {
     if (i == 0)
     {
@@ -64,7 +64,7 @@ __device__ __forceinline__ real_t cos2rule(int i, const real_t Fx, const real_t 
     return static_cast<real_t>(Fici2 / abs2);
 }
 
-__device__ __forceinline__ real_t tau_interface(const real_t rho_self, const real_t tau_self, const real_t rho_other, const real_t tau_other)
+__device__ __forceinline__ real_t tau_interface(const real_t rho_self, const real_t tau_self, const real_t rho_other, const real_t tau_other) noexcept
 {
     real_t psix = psi(rho_self, rho_other);
     real_t tau = real_t((static_cast<real_t>(1) + psix) / static_cast<real_t>(2)) * tau_self +
@@ -72,7 +72,7 @@ __device__ __forceinline__ real_t tau_interface(const real_t rho_self, const rea
     return tau;
 }
 
-__device__ __forceinline__ real_t A_calculation(const real_t tau)
+__device__ __forceinline__ real_t A_calculation(const real_t tau) noexcept
 {
     return real_t(static_cast<real_t>(1) / (static_cast<real_t>(4) * cs4 * tau)) * sigma;
 }
