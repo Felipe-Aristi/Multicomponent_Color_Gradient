@@ -66,40 +66,41 @@ __device__ __forceinline__ void Mfields_calculation(const real_t __restrict__ *f
     real_t Azz = static_cast<real_t>(0.0);
     real_t Axz = static_cast<real_t>(0.0);
 
-#pragma unroll 27   
-    for (int i = 0; i < Q; ++i)
-    {
+    constexpr_for<0, Q>(
+        [&] __device__(auto I)
+        {
+            constexpr label_t i = decltype(I)::value;
 
-        const real_t fr_i = fr[fidx(id, i)];
-        const real_t fb_i = fb[fidx(id, i)];
+            const real_t fr_i = fr[fidx(id, i)];
+            const real_t fb_i = fb[fidx(id, i)];
 
-        sumr += fr_i;
-        sumb += fb_i;
+            sumr += fr_i;
+            sumb += fb_i;
 
-        const real_t gi = fr_i + fb_i;
+            const real_t gi = fr_i + fb_i;
 
-        const real_t cx = static_cast<real_t>(d_cx[i]);
-        const real_t cy = static_cast<real_t>(d_cy[i]);
-        const real_t cz = static_cast<real_t>(d_cz[i]);
+            const real_t cx = static_cast<real_t>(d_cx[i]);
+            const real_t cy = static_cast<real_t>(d_cy[i]);
+            const real_t cz = static_cast<real_t>(d_cz[i]);
 
-        jx += gi * cx;
-        jy += gi * cy;
-        jz += gi * cz;
+            jx += gi * cx;
+            jy += gi * cy;
+            jz += gi * cz;
 
-        const real_t Hxx = d_Hxx[i];
-        const real_t Hxy = d_Hxy[i];
-        const real_t Hyy = d_Hyy[i];
-        const real_t Hyz = d_Hyz[i];
-        const real_t Hzz = d_Hzz[i];
-        const real_t Hxz = d_Hxz[i];
+            const real_t Hxx = d_Hxx[i];
+            const real_t Hxy = d_Hxy[i];
+            const real_t Hyy = d_Hyy[i];
+            const real_t Hyz = d_Hyz[i];
+            const real_t Hzz = d_Hzz[i];
+            const real_t Hxz = d_Hxz[i];
 
-        Axx += gi * Hxx;
-        Axy += gi * Hxy;
-        Ayy += gi * Hyy;
-        Ayz += gi * Hyz;
-        Azz += gi * Hzz;
-        Axz += gi * Hxz;
-    }
+            Axx += gi * Hxx;
+            Axy += gi * Hxy;
+            Ayy += gi * Hyy;
+            Ayz += gi * Hyz;
+            Azz += gi * Hzz;
+            Axz += gi * Hxz;
+        });
 
     rhor[id] = sumr;
     rhob[id] = sumb;

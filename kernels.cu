@@ -109,21 +109,23 @@ __global__ void ColliStream(real_t __restrict__ *fir, const real_t __restrict__ 
 
     if (I <= real_t(1e-4))
     {
-#pragma unroll 27
-        for (label_t i = 0; i < Q; ++i)
-        {
-            const real_t gieq = feq(i, rT, vx, vy, vz);
-            const real_t gineqr = fneqr(i, pixx, pixy, piyy, piyz, pizz, pixz);
+        constexpr_for<0, Q>(
+            [&] __device__(auto Idir)
+            {
+                constexpr label_t i = decltype(Idir)::value;
 
-            const real_t Omega1 = gieq + (real_t(1.0) - omegab) * gineqr;
+                const real_t gieq = feq(i, rT, vx, vy, vz);
+                const real_t gineqr = fneqr(i, pixx, pixy, piyy, piyz, pizz, pixz);
 
-            const real_t gi = Omega1;
+                const real_t Omega1 = gieq + (real_t(1.0) - omegab) * gineqr;
 
-            const int idn = idx(x + d_cx[i], y + d_cy[i], z + d_cz[i]);
+                const real_t gi = Omega1;
 
-            fir[fidx(idn, i)] = aR * gi;
-            fib[fidx(idn, i)] = aB * gi;
-        }
+                const int idn = idx(x + d_cx[i], y + d_cy[i], z + d_cz[i]);
+
+                fir[fidx(idn, i)] = aR * gi;
+                fib[fidx(idn, i)] = aB * gi;
+            });
         return;
     }
 
@@ -133,26 +135,28 @@ __global__ void ColliStream(real_t __restrict__ *fir, const real_t __restrict__ 
     real_t Fxb, Fyb, Fzb, Ab, absforceb;
     preOmega2(rhob, rhor, x, y, z, taub, taur, Fxb, Fyb, Fzb, absforceb, Ab);
 
-#pragma unroll 27
-    for (int i = 0; i < Q; ++i)
-    {
-        const real_t gieq = feq(i, rT, vx, vy, vz);
-        const real_t gineqr = fneqr(i, pixx, pixy, piyy, piyz, pizz, pixz);
+    constexpr_for<0, Q>(
+        [&] __device__(auto Idir)
+        {
+            constexpr label_t i = decltype(Idir)::value;
 
-        const real_t Omega1 = gieq + (real_t(1.0) - omegab) * gineqr;
+            const real_t gieq = feq(i, rT, vx, vy, vz);
+            const real_t gineqr = fneqr(i, pixx, pixy, piyy, piyz, pizz, pixz);
 
-        const real_t Omega2R = Omega2(i, rr, taur, rb, taub, Fxr, Fyr, Fzr, absforcer, Ar);
-        const real_t Omega2B = Omega2(i, rb, taub, rr, taur, Fxb, Fyb, Fzb, absforceb, Ab);
+            const real_t Omega1 = gieq + (real_t(1.0) - omegab) * gineqr;
 
-        const real_t gi = Omega1 + Omega2R + Omega2B; //
+            const real_t Omega2R = Omega2(i, rr, taur, rb, taub, Fxr, Fyr, Fzr, absforcer, Ar);
+            const real_t Omega2B = Omega2(i, rb, taub, rr, taur, Fxb, Fyb, Fzb, absforceb, Ab);
 
-        const real_t Deltai = recolorDelta(i, rr, rb, Fxr, Fyr, Fzr, absforcer);
+            const real_t gi = Omega1 + Omega2R + Omega2B; //
 
-        const int idn = idx(x + d_cx[i], y + d_cy[i], z + d_cz[i]);
+            const real_t Deltai = recolorDelta(i, rr, rb, Fxr, Fyr, Fzr, absforcer);
 
-        fir[fidx(idn, i)] = aR * gi + Deltai;
-        fib[fidx(idn, i)] = aB * gi - Deltai;
-    }
+            const label_t idn = idx(x + d_cx[i], y + d_cy[i], z + d_cz[i]);
+
+            fir[fidx(idn, i)] = aR * gi + Deltai;
+            fib[fidx(idn, i)] = aB * gi - Deltai;
+        });
 }
 
 //----------------- Boundary conditions -------------------------

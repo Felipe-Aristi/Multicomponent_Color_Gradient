@@ -52,9 +52,11 @@ __device__ __forceinline__ void inlet_calculation(real_t __restrict__ *fr, real_
     const real_t aR = rhor[idB] * (static_cast<real_t>(1) / rT);
     const real_t aB = rhob[idB] * (static_cast<real_t>(1) / rT);
 
-#pragma unroll 27
-    for (label_t i = 0; i < Q; ++i)
-    {
+    constexpr_for<0, Q>(
+        [&] __device__(auto I)
+        {
+        constexpr label_t i = decltype(I)::value;
+
         if (d_cy[i] == 1)
         {
             const label_t xn = x + d_cx[i];
@@ -69,8 +71,7 @@ __device__ __forceinline__ void inlet_calculation(real_t __restrict__ *fr, real_
 
             fr[fidx(fluid_node, i)] = aR * gi;
             fb[fidx(fluid_node, i)] = aB * gi;
-        }
-    }
+        } });
 }
 
 // outlet boundary condition
@@ -109,9 +110,11 @@ __device__ __forceinline__ void neumann_calculation(real_t __restrict__ *fir, re
 
     const real_t omegaMix = omegar;
 
-#pragma unroll 27
-    for (label_t i = 0; i < Q; ++i)
-    {
+    constexpr_for<0, Q>(
+        [&] __device__(auto I)
+        {
+          constexpr label_t i = decltype(I)::value;
+
         if (d_cy[i] == -1)
         {
             const label_t xn = x + d_cx[i];
@@ -126,8 +129,8 @@ __device__ __forceinline__ void neumann_calculation(real_t __restrict__ *fir, re
 
             fir[fidx(idDest, i)] = aR * gi;
             fib[fidx(idDest, i)] = aB * gi;
-        }
-    }
+
+        } });
 }
 
 #endif

@@ -5,12 +5,12 @@
 #include "utilities/types.cuh"
 
 // Steps
-inline constexpr int NSTEP = 1;
-inline constexpr int NOUTPUT = 100;
+inline constexpr int NSTEP = 20000;
+inline constexpr int NOUTPUT = 1000;
 
 // Grid
-inline constexpr std::size_t NX = 128;
-inline constexpr std::size_t NZ = 128;
+inline constexpr std::size_t NX = 64;
+inline constexpr std::size_t NZ = 64;
 inline constexpr std::size_t NY = 128;
 inline constexpr std::size_t Ncells = NX * NY * NZ;
 
@@ -24,7 +24,7 @@ inline constexpr std::size_t bytesCell = Ncells * sizeof(real_t);
 inline constexpr std::size_t bytesF = fSize * sizeof(real_t);
 
 // Jet parameters
-inline constexpr real_t jet_radius = 16.0;
+inline constexpr real_t jet_radius = 8.0;
 inline constexpr real_t jet_x0 = NX / 2.0;
 inline constexpr real_t jet_z0 = NZ / 2.0;
 inline constexpr real_t jet_velocity = 0.0465;
@@ -37,6 +37,7 @@ inline constexpr real_t bubble_z0 = NZ / 2.0;
 inline constexpr real_t pi = static_cast<real_t>(3.141592653589793);
 
 inline constexpr real_t cs2 = static_cast<real_t>(1.0 / 3.0);
+inline constexpr real_t inv_cs2 = static_cast<real_t>(1) / cs2;
 inline constexpr real_t cs4 = cs2 * cs2;
 
 inline constexpr real_t rhor0 = static_cast<real_t>(1);
@@ -54,5 +55,7 @@ inline constexpr real_t omegab = static_cast<real_t>(1) / taub;
 
 inline constexpr real_t sigma = static_cast<real_t>(0.0000000000010);
 inline constexpr real_t beta_recolor = real_t(0.95);
+
+inline constexpr real_t sigma_over_4cs4 = sigma / (static_cast<real_t>(4) * cs4);
 
 #endif
