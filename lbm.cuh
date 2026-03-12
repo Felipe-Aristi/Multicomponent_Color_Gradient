@@ -3,6 +3,7 @@
 
 #include "constants.cuh"
 #include "stencil.cuh"
+#include "stencil_ct.cuh"
 #include "utilities/bounds.cuh"
 #include "utilities/indexing.cuh"
 #include "utilities/types.cuh"
@@ -10,33 +11,43 @@
 
 //----------- Distribution functions -----------
 
-__device__ __forceinline__ real_t feq(const label_t i, const real_t rho, const real_t ux, const real_t uy, const real_t uz) noexcept
+template <label_t I>
+__device__ __forceinline__ real_t feq(const real_t rho,
+                                      const real_t ux,
+                                      const real_t uy,
+                                      const real_t uz) noexcept
 {
-    const real_t cx = static_cast<real_t>(d_cx[i]);
-    const real_t cy = static_cast<real_t>(d_cy[i]);
-    const real_t cz = static_cast<real_t>(d_cz[i]);
-    const real_t wi = static_cast<real_t>(d_w[i]);
+    constexpr real_t cx = static_cast<real_t>(D3Q27::cx<I>());
+    constexpr real_t cy = static_cast<real_t>(D3Q27::cy<I>());
+    constexpr real_t cz = static_cast<real_t>(D3Q27::cz<I>());
+    constexpr real_t wi = D3Q27::w<I>();
 
-    real_t cu = ux * cx + uy * cy + uz * cz;
-    real_t usq = ux * ux + uy * uy + uz * uz;
-    real_t A2eq = (cu / cs2) + (cu * cu) / (2 * cs4) - (usq / (2 * cs2));
+    const real_t cu = ux * cx + uy * cy + uz * cz;
+    const real_t usq = ux * ux + uy * uy + uz * uz;
+    const real_t A2eq = (cu / cs2) + (cu * cu) / (real_t(2.0) * cs4) - (usq / (real_t(2.0) * cs2));
 
-    return wi * rho * (static_cast<real_t>(1.0) + A2eq);
+    return wi * rho * (real_t(1.0) + A2eq);
 }
 
-__device__ __forceinline__ real_t fneqr(const label_t i, const real_t Pixx, const real_t Pixy, const real_t Piyy,
-                                        const real_t Piyz, const real_t Pizz, const real_t Pixz) noexcept
+template <label_t I>
+__device__ __forceinline__ real_t fneqr(const real_t Pixx,
+                                        const real_t Pixy,
+                                        const real_t Piyy,
+                                        const real_t Piyz,
+                                        const real_t Pizz,
+                                        const real_t Pixz) noexcept
 {
-    const real_t Hxx = d_Hxx[i];
-    const real_t Hxy = d_Hxy[i];
-    const real_t Hyy = d_Hyy[i];
-    const real_t Hyz = d_Hyz[i];
-    const real_t Hzz = d_Hzz[i];
-    const real_t Hxz = d_Hxz[i];
+    constexpr real_t Hxx = D3Q27::Hxx<I>();
+    constexpr real_t Hxy = D3Q27::Hxy<I>();
+    constexpr real_t Hyy = D3Q27::Hyy<I>();
+    constexpr real_t Hyz = D3Q27::Hyz<I>();
+    constexpr real_t Hzz = D3Q27::Hzz<I>();
+    constexpr real_t Hxz = D3Q27::Hxz<I>();
 
-    const real_t wi = static_cast<real_t>(d_w[i]);
+    constexpr real_t wi = D3Q27::w<I>();
 
-    const real_t a2neq = wi * (Pixx * Hxx + 2.0 * Pixy * Hxy + Piyy * Hyy + 2.0 * Piyz * Hyz + Pizz * Hzz + 2.0 * Pixz * Hxz) / (2.0 * cs4);
+    const real_t a2neq = wi * (Pixx * Hxx + real_t(2.0) * Pixy * Hxy + Piyy * Hyy + real_t(2.0) * Piyz * Hyz + Pizz * Hzz + real_t(2.0) * Pixz * Hxz) / (real_t(2.0) * cs4);
+
     return a2neq;
 }
 
@@ -79,20 +90,20 @@ __device__ __forceinline__ void Mfields_calculation(const real_t __restrict__ *f
 
             const real_t gi = fr_i + fb_i;
 
-            const real_t cx = static_cast<real_t>(d_cx[i]);
-            const real_t cy = static_cast<real_t>(d_cy[i]);
-            const real_t cz = static_cast<real_t>(d_cz[i]);
+            constexpr real_t cx = static_cast<real_t>(D3Q27::cx<I>());
+            constexpr real_t cy = static_cast<real_t>(D3Q27::cy<I>());
+            constexpr real_t cz = static_cast<real_t>(D3Q27::cz<I>());
 
             jx += gi * cx;
             jy += gi * cy;
             jz += gi * cz;
 
-            const real_t Hxx = d_Hxx[i];
-            const real_t Hxy = d_Hxy[i];
-            const real_t Hyy = d_Hyy[i];
-            const real_t Hyz = d_Hyz[i];
-            const real_t Hzz = d_Hzz[i];
-            const real_t Hxz = d_Hxz[i];
+            constexpr real_t Hxx = D3Q27::Hxx<I>();
+            constexpr real_t Hxy = D3Q27::Hxy<I>();
+            constexpr real_t Hyy = D3Q27::Hyy<I>();
+            constexpr real_t Hyz = D3Q27::Hyz<I>();
+            constexpr real_t Hzz = D3Q27::Hzz<I>();
+            constexpr real_t Hxz = D3Q27::Hxz<I>();
 
             Axx += gi * Hxx;
             Axy += gi * Hxy;

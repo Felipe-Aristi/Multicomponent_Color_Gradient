@@ -2,6 +2,7 @@
 #include "jet/jetIn.cuh"
 #include "jet/boundary_conditions.cuh"
 #include "lbm.cuh"
+#include "stencil_ct.cuh"
 #include "collisionOperators.cuh"
 
 //--------------------- Initialize fields --------------------------------------------------
@@ -114,14 +115,20 @@ __global__ void ColliStream(real_t __restrict__ *fir, const real_t __restrict__ 
             {
                 constexpr label_t i = decltype(Idir)::value;
 
-                const real_t gieq = feq(i, rT, vx, vy, vz);
-                const real_t gineqr = fneqr(i, pixx, pixy, piyy, piyz, pizz, pixz);
+                const real_t gieq = feq<i>(rT, vx, vy, vz);
+                const real_t gineqr = fneqr<i>(pixx, pixy, piyy, piyz, pizz, pixz);
 
-                const real_t Omega1 = gieq + (real_t(1.0) - omegab) * gineqr;
+                const real_t Omega1 = gieq + (static_cast<real_t>(1.0) - omegab) * gineqr;
 
                 const real_t gi = Omega1;
 
-                const int idn = idx(x + d_cx[i], y + d_cy[i], z + d_cz[i]);
+                const int xn = static_cast<int>(x) + D3Q27::cx<i>();
+                const int yn = static_cast<int>(y) + D3Q27::cy<i>();
+                const int zn = static_cast<int>(z) + D3Q27::cz<i>();
+
+                const label_t idn = idx(static_cast<label_t>(xn),
+                                        static_cast<label_t>(yn),
+                                        static_cast<label_t>(zn));
 
                 fir[fidx(idn, i)] = aR * gi;
                 fib[fidx(idn, i)] = aB * gi;
@@ -140,19 +147,25 @@ __global__ void ColliStream(real_t __restrict__ *fir, const real_t __restrict__ 
         {
             constexpr label_t i = decltype(Idir)::value;
 
-            const real_t gieq = feq(i, rT, vx, vy, vz);
-            const real_t gineqr = fneqr(i, pixx, pixy, piyy, piyz, pizz, pixz);
+            const real_t gieq = feq<i>(rT, vx, vy, vz);
+            const real_t gineqr = fneqr<i>(pixx, pixy, piyy, piyz, pizz, pixz);
 
-            const real_t Omega1 = gieq + (real_t(1.0) - omegab) * gineqr;
+            const real_t Omega1 = gieq + (static_cast<real_t>(1.0) - omegab) * gineqr;
 
-            const real_t Omega2R = Omega2(i, rr, taur, rb, taub, Fxr, Fyr, Fzr, absforcer, Ar);
-            const real_t Omega2B = Omega2(i, rb, taub, rr, taur, Fxb, Fyb, Fzb, absforceb, Ab);
+            const real_t Omega2R = Omega2<i>(Fxr, Fyr, Fzr, absforcer, Ar);
+            const real_t Omega2B = Omega2<i>(Fxb, Fyb, Fzb, absforceb, Ab);
 
             const real_t gi = Omega1 + Omega2R + Omega2B; //
 
-            const real_t Deltai = recolorDelta(i, rr, rb, Fxr, Fyr, Fzr, absforcer);
+            const real_t Deltai = recolorDelta<i>(rr, rb, Fxr, Fyr, Fzr, absforcer);
 
-            const label_t idn = idx(x + d_cx[i], y + d_cy[i], z + d_cz[i]);
+            const int xn = static_cast<int>(x) + D3Q27::cx<i>();
+            const int yn = static_cast<int>(y) + D3Q27::cy<i>();
+            const int zn = static_cast<int>(z) + D3Q27::cz<i>();
+
+            const label_t idn = idx(static_cast<label_t>(xn),
+                                    static_cast<label_t>(yn),
+                                    static_cast<label_t>(zn));
 
             fir[fidx(idn, i)] = aR * gi + Deltai;
             fib[fidx(idn, i)] = aB * gi - Deltai;

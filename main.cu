@@ -74,7 +74,7 @@ int main()
         {
             // CUDA_CHECK(cudaDeviceSynchronize());
 
-            write_vtk_step_device(step, d, h);
+            write_vti_step_device(step, d, h);
         }
     }
 

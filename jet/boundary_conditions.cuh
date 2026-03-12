@@ -10,6 +10,7 @@
 #include "../forces.cuh"
 #include "../collisionOperators.cuh"
 #include "../stencil.cuh"
+#include "../stencil_ct.cuh"
 
 // inlet boundary condition
 
@@ -57,15 +58,15 @@ __device__ __forceinline__ void inlet_calculation(real_t __restrict__ *fr, real_
         {
         constexpr label_t i = decltype(I)::value;
 
-        if (d_cy[i] == 1)
+       if constexpr (D3Q27::cy<i>() == 1)
         {
-            const label_t xn = x + d_cx[i];
-            const label_t zn = z + d_cz[i];
+            const int xn = static_cast<int>(x) + D3Q27::cx<i>();
+            const int zn = static_cast<int>(z) + D3Q27::cz<i>();
 
-            label_t fluid_node = idx(xn, yF, zn);
+            const label_t fluid_node = idx(static_cast<label_t>(xn), yF, static_cast<label_t>(zn));
 
-            const real_t gieq = feq(i, rT, uxb, uyb, uzb);
-            const real_t gineqr = fneqr(i, pixx, pixy, piyy, piyz, pizz, pixz);
+            const real_t gieq = feq<i>(rT, uxb, uyb, uzb);
+            const real_t gineqr = fneqr<i>(pixx, pixy, piyy, piyz, pizz, pixz);
 
             const real_t gi = gieq + (static_cast<real_t>(1.0) - omegab) * gineqr;
 
@@ -108,27 +109,27 @@ __device__ __forceinline__ void neumann_calculation(real_t __restrict__ *fir, re
     const real_t aR = rhor[idB] * invRhoT;
     const real_t aB = rhob[idB] * invRhoT;
 
-    const real_t omegaMix = omegar;
+    const real_t omegaMix = omegab;
 
     constexpr_for<0, Q>(
         [&] __device__(auto I)
         {
           constexpr label_t i = decltype(I)::value;
 
-        if (d_cy[i] == -1)
+        if constexpr (D3Q27::cy<i>() == -1)
         {
-            const label_t xn = x + d_cx[i];
-            const label_t zn = z + d_cz[i];
+            const int xn = static_cast<int>(x) + D3Q27::cx<i>();
+            const int zn = static_cast<int>(z) + D3Q27::cz<i>();
 
-            const label_t idDest = idx(xn, yF, zn);
+            const label_t fluid_node = idx(static_cast<label_t>(xn), yF, static_cast<label_t>(zn));
 
-            const real_t gieq = feq(i, rhoT, ux[idB], uy[idB], uz[idB]);
-            const real_t gineqr = fneqr(i, pixx, pixy, piyy, piyz, pizz, pixz);
+            const real_t gieq = feq<i>(rhoT, ux[idB], uy[idB], uz[idB]);
+            const real_t gineqr = fneqr<i>(pixx, pixy, piyy, piyz, pizz, pixz);
 
             const real_t gi = gieq + (static_cast<real_t>(1.0) - omegaMix) * gineqr;
 
-            fir[fidx(idDest, i)] = aR * gi;
-            fib[fidx(idDest, i)] = aB * gi;
+            fir[fidx(fluid_node, i)] = aR * gi;
+            fib[fidx(fluid_node, i)] = aB * gi;
 
         } });
 }

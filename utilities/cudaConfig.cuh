@@ -18,7 +18,7 @@ struct CudaConfig
 __host__ __forceinline__ CudaConfig make_cudaConfig()
 {
     CudaConfig cfg{};
-    cfg.block = dim3(32, 2, 1);
+    cfg.block = dim3(32, 4, 2);
     cfg.grid = dim3(
         ceil_div((size_t)NX, (size_t)cfg.block.x),
         ceil_div((size_t)NY, (size_t)cfg.block.y),

@@ -3,6 +3,7 @@
 
 #include "constants.cuh"
 #include "stencil.cuh"
+#include "stencil_ct.cuh"
 #include "utilities/bounds.cuh"
 #include "utilities/indexing.cuh"
 #include "utilities/types.cuh"
@@ -21,12 +22,18 @@ __device__ __forceinline__ void force(const real_t __restrict__ *rho_self, const
         {
             constexpr label_t i = decltype(I)::value;
 
-            const real_t cx = static_cast<real_t>(d_cx[i]);
-            const real_t cy = static_cast<real_t>(d_cy[i]);
-            const real_t cz = static_cast<real_t>(d_cz[i]);
-            const real_t wi = static_cast<real_t>(d_w[i]);
+            constexpr real_t cx = static_cast<real_t>(D3Q27::cx<i>());
+            constexpr real_t cy = static_cast<real_t>(D3Q27::cy<i>());
+            constexpr real_t cz = static_cast<real_t>(D3Q27::cz<i>());
+            constexpr real_t wi = D3Q27::w<i>();
 
-            label_t idn = idx(x + d_cx[i], y + d_cy[i], z + d_cz[i]);
+            const int xn = static_cast<int>(x) + D3Q27::cx<i>();
+            const int yn = static_cast<int>(y) + D3Q27::cy<i>();
+            const int zn = static_cast<int>(z) + D3Q27::cz<i>();
+
+            const label_t idn = idx(static_cast<label_t>(xn),
+                                    static_cast<label_t>(yn),
+                                    static_cast<label_t>(zn));
 
             real_t psi_n = psi(rho_self[idn], rho_other[idn]);
 
@@ -45,24 +52,31 @@ __device__ __forceinline__ real_t absforce_calcul(const real_t Fx, const real_t 
     return sqrt(Fx * Fx + Fy * Fy + Fz * Fz);
 }
 
-__device__ __forceinline__ real_t cos2rule(const label_t i, const real_t Fx, const real_t Fy, const real_t Fz, const real_t abs) noexcept
+template <label_t I>
+__device__ __forceinline__ real_t cos2rule(const real_t Fx,
+                                           const real_t Fy,
+                                           const real_t Fz,
+                                           const real_t absF) noexcept
 {
-    if (i == 0)
+    if constexpr (I == 0)
     {
-        return static_cast<real_t>(0);
+        return real_t(0);
     }
 
-    if (abs <= static_cast<real_t>(0.0001))
+    if (absF <= real_t(1.0e-4))
     {
-        return static_cast<real_t>(0);
+        return real_t(0);
     }
 
-    real_t Fici = Fx * static_cast<real_t>(d_cx[i]) + Fy * static_cast<real_t>(d_cy[i]) + Fz * static_cast<real_t>(d_cz[i]);
-    real_t Fici2 = Fici * Fici;
+    constexpr real_t cx = static_cast<real_t>(D3Q27::cx<I>());
+    constexpr real_t cy = static_cast<real_t>(D3Q27::cy<I>());
+    constexpr real_t cz = static_cast<real_t>(D3Q27::cz<I>());
 
-    real_t abs2 = abs * abs;
+    const real_t Fici = Fx * cx + Fy * cy + Fz * cz;
+    const real_t Fici2 = Fici * Fici;
+    const real_t abs2 = absF * absF;
 
-    return static_cast<real_t>(Fici2 / abs2);
+    return Fici2 / abs2;
 }
 
 __device__ __forceinline__ real_t tau_interface(const real_t rho_self, const real_t tau_self, const real_t rho_other, const real_t tau_other) noexcept
