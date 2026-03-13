@@ -2,6 +2,7 @@
 #define SAVE_DATA_CUH
 
 #include <cstdint>
+#include <cstring>
 #include <fstream>
 #include <iomanip>
 #include <sstream>
@@ -9,6 +10,7 @@
 #include <stdexcept>
 #include <type_traits>
 #include <vector>
+#include <string>
 
 #include "../constants.cuh"
 #include "../utilities/types.cuh"
@@ -29,71 +31,101 @@ inline const char *vtk_real_type()
         return "Float64";
 }
 
-inline void write_uint64_block_header(std::ofstream &out, std::uint64_t nbytes)
+// -------------------- Base64 --------------------
+
+inline std::string base64_encode(const unsigned char *data, std::size_t len)
 {
-    out.write(reinterpret_cast<const char *>(&nbytes), sizeof(std::uint64_t));
-    if (!out)
-        throw std::runtime_error("Failed writing VTI block header.");
+    static constexpr char table[] =
+        "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+        "abcdefghijklmnopqrstuvwxyz"
+        "0123456789+/";
+
+    std::string out;
+    out.reserve(((len + 2) / 3) * 4);
+
+    for (std::size_t i = 0; i < len; i += 3)
+    {
+        const std::uint32_t b0 = data[i];
+        const std::uint32_t b1 = (i + 1 < len) ? data[i + 1] : 0;
+        const std::uint32_t b2 = (i + 2 < len) ? data[i + 2] : 0;
+
+        const std::uint32_t triple = (b0 << 16) | (b1 << 8) | b2;
+
+        out.push_back(table[(triple >> 18) & 0x3F]);
+        out.push_back(table[(triple >> 12) & 0x3F]);
+
+        if (i + 1 < len)
+            out.push_back(table[(triple >> 6) & 0x3F]);
+        else
+            out.push_back('=');
+
+        if (i + 2 < len)
+            out.push_back(table[triple & 0x3F]);
+        else
+            out.push_back('=');
+    }
+
+    return out;
 }
 
-inline void write_raw_block(std::ofstream &out, const real_t *data, std::size_t nvals)
+// -------------------- Pack arrays for VTK XML binary --------------------
+// VTK binary XML expects:
+// [UInt64 byte_count][raw bytes...]
+// and then the whole thing base64-encoded.
+
+inline std::string encode_scalar_array_binary(const real_t *data, std::size_t nvals)
 {
     const std::uint64_t nbytes =
         static_cast<std::uint64_t>(nvals) * static_cast<std::uint64_t>(sizeof(real_t));
 
-    write_uint64_block_header(out, nbytes);
-    out.write(reinterpret_cast<const char *>(data), static_cast<std::streamsize>(nbytes));
+    std::vector<unsigned char> buffer(sizeof(std::uint64_t) + static_cast<std::size_t>(nbytes));
 
-    if (!out)
-        throw std::runtime_error("Failed writing VTI raw block.");
+    std::memcpy(buffer.data(), &nbytes, sizeof(std::uint64_t));
+    std::memcpy(buffer.data() + sizeof(std::uint64_t), data, static_cast<std::size_t>(nbytes));
+
+    return base64_encode(buffer.data(), buffer.size());
 }
 
-inline void write_sum_block(std::ofstream &out,
-                            const real_t *a,
-                            const real_t *b,
-                            std::size_t nvals)
+inline std::string encode_sum_array_binary(const real_t *a, const real_t *b, std::size_t nvals)
 {
     const std::uint64_t nbytes =
         static_cast<std::uint64_t>(nvals) * static_cast<std::uint64_t>(sizeof(real_t));
 
-    write_uint64_block_header(out, nbytes);
+    std::vector<unsigned char> buffer(sizeof(std::uint64_t) + static_cast<std::size_t>(nbytes));
+    std::memcpy(buffer.data(), &nbytes, sizeof(std::uint64_t));
 
-    std::vector<real_t> tmp(nvals);
+    real_t *payload = reinterpret_cast<real_t *>(buffer.data() + sizeof(std::uint64_t));
     for (std::size_t i = 0; i < nvals; ++i)
-        tmp[i] = a[i] + b[i];
+        payload[i] = a[i] + b[i];
 
-    out.write(reinterpret_cast<const char *>(tmp.data()), static_cast<std::streamsize>(nbytes));
-
-    if (!out)
-        throw std::runtime_error("Failed writing VTI sum block.");
+    return base64_encode(buffer.data(), buffer.size());
 }
 
-inline void write_vec3_block(std::ofstream &out,
-                             const real_t *ux,
-                             const real_t *uy,
-                             const real_t *uz,
-                             std::size_t npts)
+inline std::string encode_vec3_array_binary(const real_t *ux,
+                                            const real_t *uy,
+                                            const real_t *uz,
+                                            std::size_t npts)
 {
     const std::uint64_t nbytes =
         static_cast<std::uint64_t>(3) *
         static_cast<std::uint64_t>(npts) *
         static_cast<std::uint64_t>(sizeof(real_t));
 
-    write_uint64_block_header(out, nbytes);
+    std::vector<unsigned char> buffer(sizeof(std::uint64_t) + static_cast<std::size_t>(nbytes));
+    std::memcpy(buffer.data(), &nbytes, sizeof(std::uint64_t));
 
-    std::vector<real_t> tmp(3 * npts);
+    real_t *payload = reinterpret_cast<real_t *>(buffer.data() + sizeof(std::uint64_t));
     for (std::size_t i = 0; i < npts; ++i)
     {
-        tmp[3 * i + 0] = ux[i];
-        tmp[3 * i + 1] = uy[i];
-        tmp[3 * i + 2] = uz[i];
+        payload[3 * i + 0] = ux[i];
+        payload[3 * i + 1] = uy[i];
+        payload[3 * i + 2] = uz[i];
     }
 
-    out.write(reinterpret_cast<const char *>(tmp.data()), static_cast<std::streamsize>(nbytes));
-
-    if (!out)
-        throw std::runtime_error("Failed writing VTI vector block.");
+    return base64_encode(buffer.data(), buffer.size());
 }
+
+// -------------------- VTI writer --------------------
 
 inline void write_vti(const std::filesystem::path &filename,
                       const real_t *rhor,
@@ -108,21 +140,14 @@ inline void write_vti(const std::filesystem::path &filename,
         throw std::runtime_error("Cannot open VTI file for writing: " + filename.string());
 
     constexpr std::size_t npts = static_cast<std::size_t>(Ncells);
-    constexpr std::uint64_t header_bytes = sizeof(std::uint64_t);
 
-    const std::uint64_t bytes_scalar =
-        header_bytes + static_cast<std::uint64_t>(npts) * sizeof(real_t);
-
-    const std::uint64_t bytes_vec3 =
-        header_bytes + static_cast<std::uint64_t>(3) * static_cast<std::uint64_t>(npts) * sizeof(real_t);
-
-    std::uint64_t off_rhor = 0;
-    std::uint64_t off_rhob = off_rhor + bytes_scalar;
-    std::uint64_t off_rho = off_rhob + bytes_scalar;
-    std::uint64_t off_u = off_rho + (write_total_rho ? bytes_scalar : 0);
+    const std::string enc_rhor = encode_scalar_array_binary(rhor, npts);
+    const std::string enc_rhob = encode_scalar_array_binary(rhob, npts);
+    const std::string enc_rho = write_total_rho ? encode_sum_array_binary(rhor, rhob, npts) : std::string{};
+    const std::string enc_u = encode_vec3_array_binary(ux, uy, uz, npts);
 
     out << "<?xml version=\"1.0\"?>\n";
-    out << "<VTKFile type=\"ImageData\" version=\"0.1\" byte_order=\"LittleEndian\" header_type=\"UInt64\">\n";
+    out << "<VTKFile type=\"ImageData\" version=\"1.0\" byte_order=\"LittleEndian\" header_type=\"UInt64\">\n";
     out << "  <ImageData WholeExtent=\"0 " << (NX - 1)
         << " 0 " << (NY - 1)
         << " 0 " << (NZ - 1)
@@ -132,37 +157,35 @@ inline void write_vti(const std::filesystem::path &filename,
         << " 0 " << (NZ - 1) << "\">\n";
 
     out << "      <PointData Scalars=\"rhor\" Vectors=\"u\">\n";
+
     out << "        <DataArray type=\"" << vtk_real_type()
-        << "\" Name=\"rhor\" format=\"appended\" offset=\"" << off_rhor << "\"/>\n";
+        << "\" Name=\"rhor\" format=\"binary\">\n";
+    out << enc_rhor << "\n";
+    out << "        </DataArray>\n";
+
     out << "        <DataArray type=\"" << vtk_real_type()
-        << "\" Name=\"rhob\" format=\"appended\" offset=\"" << off_rhob << "\"/>\n";
+        << "\" Name=\"rhob\" format=\"binary\">\n";
+    out << enc_rhob << "\n";
+    out << "        </DataArray>\n";
 
     if (write_total_rho)
     {
         out << "        <DataArray type=\"" << vtk_real_type()
-            << "\" Name=\"rho\" format=\"appended\" offset=\"" << off_rho << "\"/>\n";
+            << "\" Name=\"rho\" format=\"binary\">\n";
+        out << enc_rho << "\n";
+        out << "        </DataArray>\n";
     }
 
     out << "        <DataArray type=\"" << vtk_real_type()
-        << "\" Name=\"u\" NumberOfComponents=\"3\" format=\"appended\" offset=\"" << off_u << "\"/>\n";
+        << "\" Name=\"u\" NumberOfComponents=\"3\" format=\"binary\">\n";
+    out << enc_u << "\n";
+    out << "        </DataArray>\n";
+
     out << "      </PointData>\n";
     out << "      <CellData>\n";
     out << "      </CellData>\n";
     out << "    </Piece>\n";
     out << "  </ImageData>\n";
-    out << "  <AppendedData encoding=\"raw\">\n";
-    out << "_";
-
-    // appended raw blocks
-    write_raw_block(out, rhor, npts);
-    write_raw_block(out, rhob, npts);
-
-    if (write_total_rho)
-        write_sum_block(out, rhor, rhob, npts);
-
-    write_vec3_block(out, ux, uy, uz, npts);
-
-    out << "\n  </AppendedData>\n";
     out << "</VTKFile>\n";
 
     if (!out)

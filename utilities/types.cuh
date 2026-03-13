@@ -2,20 +2,38 @@
 #define TYPES_CUH
 
 #include <cstdint>
+#include <cuda_fp16.h>
 
 using real_t = float;
 using label_t = uint32_t;
 
-using pop_t = float; // later: __half or custom 16-bit storage
+// Mixed populations
+using pop_t = __half;
 
-__device__ __forceinline__ real_t load_pop(const pop_t *f, int k) noexcept
+inline constexpr real_t FP16S_UP = real_t(32768.0);         // 2^15
+inline constexpr real_t FP16S_DOWN = real_t(1.0 / 32768.0); // 2^-15
+
+__host__ __device__ __forceinline__ pop_t load_pop(const real_t x) noexcept
 {
-    return static_cast<real_t>(f[k]);
+    return __float2half_rn(x * FP16S_UP);
 }
 
-__device__ __forceinline__ void store_pop(pop_t *f, int k, real_t x) noexcept
+__host__ __device__ __forceinline__ real_t store_pop(const pop_t h) noexcept
 {
-    f[k] = static_cast<pop_t>(x);
+    return __half2float(h) * FP16S_DOWN;
 }
+
+// Shifted populations
+// template <label_t I>
+// __host__ __device__ __forceinline__ real_t shift_pop(const real_t f_raw) noexcept
+// {
+//     return f_raw - D3Q27::w<I>();
+// }
+
+// template <label_t I>
+// __host__ __device__ __forceinline__ real_t unshift_pop(const real_t f_shift) noexcept
+// {
+//     return f_shift + D3Q27::w<I>();
+// }
 
 #endif

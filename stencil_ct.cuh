@@ -15,13 +15,22 @@ namespace D3Q27
         0, 0, 0, 0, 0, 1, -1, 0, 0, 1, -1, 1, -1, 0, 0, -1, 1, -1, 1, 1, -1, -1, 1, 1, -1, 1, -1};
 
     template <label_t I>
-    __host__ __device__ constexpr int cx() noexcept { return cx_ct[I]; }
+    __host__ __device__ constexpr int cx() noexcept
+    {
+        return cx_ct[I];
+    }
 
     template <label_t I>
-    __host__ __device__ constexpr int cy() noexcept { return cy_ct[I]; }
+    __host__ __device__ constexpr int cy() noexcept
+    {
+        return cy_ct[I];
+    }
 
     template <label_t I>
-    __host__ __device__ constexpr int cz() noexcept { return cz_ct[I]; }
+    __host__ __device__ constexpr int cz() noexcept
+    {
+        return cz_ct[I];
+    }
 
     template <label_t I>
     __host__ __device__ constexpr int s() noexcept

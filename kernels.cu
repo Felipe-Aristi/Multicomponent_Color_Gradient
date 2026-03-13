@@ -111,9 +111,9 @@ __global__ void ColliStream(real_t __restrict__ *fir, const real_t __restrict__ 
     if (I <= real_t(1e-4))
     {
         constexpr_for<0, Q>(
-            [&] __device__(auto Idir)
+            [&] __device__(auto I)
             {
-                constexpr label_t i = decltype(Idir)::value;
+                constexpr label_t i = decltype(I)::value;
 
                 const real_t gieq = feq<i>(rT, vx, vy, vz);
                 const real_t gineqr = fneqr<i>(pixx, pixy, piyy, piyz, pizz, pixz);
@@ -143,9 +143,9 @@ __global__ void ColliStream(real_t __restrict__ *fir, const real_t __restrict__ 
     preOmega2(rhob, rhor, x, y, z, taub, taur, Fxb, Fyb, Fzb, absforceb, Ab);
 
     constexpr_for<0, Q>(
-        [&] __device__(auto Idir)
+        [&] __device__(auto I)
         {
-            constexpr label_t i = decltype(Idir)::value;
+            constexpr label_t i = decltype(I)::value;
 
             const real_t gieq = feq<i>(rT, vx, vy, vz);
             const real_t gineqr = fneqr<i>(pixx, pixy, piyy, piyz, pizz, pixz);

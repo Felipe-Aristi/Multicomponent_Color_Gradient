@@ -118,6 +118,18 @@ __device__ __forceinline__ void Mfields_calculation(const real_t __restrict__ *f
 
     const real_t rhogi = sumr + sumb;
 
+    // const real_t uxr = fr[1] - fr[2] + fr[7] - fr[8] + fr[9] - fr[10] + fr[13] - fr[14] + fr[15] - fr[16] + fr[19] - fr[20] + fr[21] - fr[22] + fr[23] - fr[24] + fr[26] - fr[25];
+    // const real_t uyr = fr[3] - fr[4] + fr[7] - fr[8] + fr[11] - fr[12] + fr[14] - fr[13] + fr[17] - fr[18] + fr[19] - fr[20] + fr[21] - fr[22] + fr[24] - fr[23] + fr[25] - fr[26];
+    // const real_t uzr = fr[5] - fr[6] + fr[9] - fr[10] + fr[11] - fr[12] + fr[16] - fr[15] + fr[18] - fr[17] + fr[19] - fr[20] + fr[22] - fr[21] + fr[23] - fr[24] + fr[25] - fr[26];
+
+    // const real_t uxb = fb[1] - fb[2] + fb[7] - fb[8] + fb[9] - fb[10] + fb[13] - fb[14] + fb[15] - fb[16] + fb[19] - fb[20] + fb[21] - fb[22] + fb[23] - fb[24] + fb[26] - fb[25];
+    // const real_t uyb = fb[3] - fb[4] + fb[7] - fb[8] + fb[11] - fb[12] + fb[14] - fb[13] + fb[17] - fb[18] + fb[19] - fb[20] + fb[21] - fb[22] + fb[24] - fb[23] + fb[25] - fb[26];
+    // const real_t uzb = fb[5] - fb[6] + fb[9] - fb[10] + fb[11] - fb[12] + fb[16] - fb[15] + fb[18] - fb[17] + fb[19] - fb[20] + fb[22] - fb[21] + fb[23] - fb[24] + fb[25] - fb[26];
+
+    // const real_t jx = uxr + uxb;
+    // const real_t jy = uyr + uyb;
+    // const real_t jz = uzr + uzb;
+
     const real_t vx = (jx) / rhogi;
     const real_t vy = (jy) / rhogi;
     const real_t vz = (jz) / rhogi;

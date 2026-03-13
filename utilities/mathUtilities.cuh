@@ -25,42 +25,6 @@ __device__ __forceinline__ real_t psi(const real_t rho_self, const real_t rho_ot
     return real_t(rho_self - rho_other) / real_t(rho_self + rho_other);
 }
 
-// Hermite polynomial H2
-__device__ __constant__ constexpr const real_t d_Hxx[Q] = {real_t(-1.0 / 3.0), real_t(2.0 / 3.0), real_t(2.0 / 3.0), real_t(-1.0 / 3.0), real_t(-1.0 / 3.0), real_t(-1.0 / 3.0), real_t(-1.0 / 3.0), real_t(2.0 / 3.0),
-                                                           real_t(2.0 / 3.0), real_t(2.0 / 3.0), real_t(2.0 / 3.0), real_t(-1.0 / 3.0), real_t(-1.0 / 3.0), real_t(2.0 / 3.0), real_t(2.0 / 3.0), real_t(2.0 / 3.0),
-                                                           real_t(2.0 / 3.0), real_t(-1.0 / 3.0), real_t(-1.0 / 3.0), real_t(2.0 / 3.0), real_t(2.0 / 3.0), real_t(2.0 / 3.0),
-                                                           real_t(2.0 / 3.0), real_t(2.0 / 3.0), real_t(2.0 / 3.0), real_t(2.0 / 3.0), real_t(2.0 / 3.0)};
-
-__device__ __constant__ constexpr const real_t d_Hxy[Q] = {real_t(0.0), real_t(0.0), real_t(0.0), real_t(0.0), real_t(0.0), real_t(0.0), real_t(0.0), real_t(1.0), real_t(1.0), real_t(0.0), real_t(0.0), real_t(0.0),
-                                                           real_t(0.0), real_t(-1.0), real_t(-1.0), real_t(0.0), real_t(0.0), real_t(0.0), real_t(0.0), real_t(1.0), real_t(1.0), real_t(1.0), real_t(1.0), real_t(-1.0),
-                                                           real_t(-1.0), real_t(-1.0), real_t(-1.0)};
-
-__device__ __constant__ constexpr const real_t d_Hyy[Q] = {real_t(-1.0 / 3.0), real_t(-1.0 / 3.0), real_t(-1.0 / 3.0), real_t(2.0 / 3.0), real_t(2.0 / 3.0), real_t(-1.0 / 3.0), real_t(-1.0 / 3.0), real_t(2.0 / 3.0),
-                                                           real_t(2.0 / 3.0), real_t(-1.0 / 3.0), real_t(-1.0 / 3.0), real_t(2.0 / 3.0), real_t(2.0 / 3.0), real_t(2.0 / 3.0), real_t(2.0 / 3.0), real_t(-1.0 / 3.0),
-                                                           real_t(-1.0 / 3.0), real_t(2.0 / 3.0), real_t(2.0 / 3.0), real_t(2.0 / 3.0), real_t(2.0 / 3.0), real_t(2.0 / 3.0), real_t(2.0 / 3.0), real_t(2.0 / 3.0),
-                                                           real_t(2.0 / 3.0), real_t(2.0 / 3.0), real_t(2.0 / 3.0)};
-
-__device__ __constant__ constexpr const real_t d_Hyz[Q] = {real_t(0.0), real_t(0.0), real_t(0.0), real_t(0.0), real_t(0.0), real_t(0.0), real_t(0.0), real_t(0.0), real_t(0.0), real_t(0.0), real_t(0.0), real_t(1.0),
-                                                           real_t(1.0), real_t(0.0), real_t(0.0), real_t(0.0), real_t(0.0), real_t(-1.0), real_t(-1.0), real_t(1.0), real_t(1.0), real_t(-1.0), real_t(-1.0), real_t(-1.0),
-                                                           real_t(-1.0), real_t(1.0), real_t(1.0)};
-
-__device__ __constant__ constexpr const real_t d_Hzz[Q] = {real_t(-1.0 / 3.0), real_t(-1.0 / 3.0), real_t(-1.0 / 3.0), real_t(-1.0 / 3.0), real_t(-1.0 / 3.0), real_t(2.0 / 3.0), real_t(2.0 / 3.0), real_t(-1.0 / 3.0),
-                                                           real_t(-1.0 / 3.0), real_t(2.0 / 3.0), real_t(2.0 / 3.0), real_t(2.0 / 3.0), real_t(2.0 / 3.0), real_t(-1.0 / 3.0), real_t(-1.0 / 3.0), real_t(2.0 / 3.0),
-                                                           real_t(2.0 / 3.0), real_t(2.0 / 3.0), real_t(2.0 / 3.0), real_t(2.0 / 3.0), real_t(2.0 / 3.0), real_t(2.0 / 3.0), real_t(2.0 / 3.0), real_t(2.0 / 3.0),
-                                                           real_t(2.0 / 3.0), real_t(2.0 / 3.0), real_t(2.0 / 3.0)};
-
-__device__ __constant__ constexpr const real_t d_Hxz[Q] = {real_t(0.0), real_t(0.0), real_t(0.0), real_t(0.0), real_t(0.0), real_t(0.0), real_t(0.0), real_t(0.0), real_t(0.0), real_t(1.0), real_t(1.0), real_t(0.0),
-                                                           real_t(0.0), real_t(0.0), real_t(0.0), real_t(-1.0), real_t(-1.0), real_t(0.0), real_t(0.0), real_t(1.0), real_t(1.0), real_t(-1.0), real_t(-1.0), real_t(1.0),
-                                                           real_t(1.0), real_t(-1.0), real_t(-1.0)};
-
-// Inverse normal component
-inline constexpr real_t Z = real_t(0.0);
-inline constexpr real_t IS1 = real_t(1.0);
-inline constexpr real_t IS2 = real_t(0.70710678118654746);
-inline constexpr real_t IS3 = real_t(0.57735026918962584);
-
-__device__ __constant__ constexpr const real_t d_invcnorm[Q] = {Z, IS1, IS1, IS1, IS1, IS1, IS1, IS2, IS2, IS2, IS2, IS2, IS2, IS2, IS2, IS2, IS2, IS2, IS2, IS3, IS3, IS3, IS3, IS3, IS3, IS3, IS3};
-
 // Constexpr_for ---> for esquisito pra os amigos
 template <typename T, T V>
 using integralConstant = std::integral_constant<T, V>;

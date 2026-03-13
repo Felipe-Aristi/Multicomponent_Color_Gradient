@@ -6,12 +6,12 @@
 
 // Steps
 inline constexpr int NSTEP = 100000;
-inline constexpr int NOUTPUT = 3000;
+inline constexpr int NOUTPUT = 5000;
 
 // Grid
-inline constexpr std::size_t NX = 128;
-inline constexpr std::size_t NZ = 128;
-inline constexpr std::size_t NY = 400;
+inline constexpr std::size_t NX = 64;
+inline constexpr std::size_t NZ = 64;
+inline constexpr std::size_t NY = 256;
 inline constexpr std::size_t Ncells = NX * NY * NZ;
 
 // VELOCITY SET D2Q27 definition
@@ -24,7 +24,7 @@ inline constexpr std::size_t bytesCell = Ncells * sizeof(real_t);
 inline constexpr std::size_t bytesF = fSize * sizeof(real_t);
 
 // Jet parameters
-inline constexpr real_t jet_radius = 16.0;
+inline constexpr real_t jet_radius = 10.0;
 inline constexpr real_t jet_x0 = NX / 2.0;
 inline constexpr real_t jet_z0 = NZ / 2.0;
 inline constexpr real_t jet_velocity = 0.0465;
