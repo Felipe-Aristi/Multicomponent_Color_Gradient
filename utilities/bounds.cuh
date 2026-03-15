@@ -20,7 +20,7 @@ __device__ [[nodiscard]] constexpr inline bool inlet_oulet_interior(const label_
 }
 
 //  Periodic boundary conditions
-__device__ inline int wrapx(int x)
+__device__ [[nodiscard]] __forceinline__ constexpr label_t wrapx(const label_t x) noexcept
 {
     if (x == 0)
     {
@@ -33,7 +33,7 @@ __device__ inline int wrapx(int x)
     return x;
 }
 
-__device__ inline int wrapy(int y)
+__device__ [[nodiscard]] __forceinline__ constexpr label_t wrapy(const label_t y) noexcept
 {
     if (y == 0)
     {
@@ -46,7 +46,7 @@ __device__ inline int wrapy(int y)
     return y;
 }
 
-__device__ inline int wrapz(int z)
+__device__ [[nodiscard]] __forceinline__ constexpr label_t wrapz(const label_t z) noexcept
 {
     if (z == 0)
     {

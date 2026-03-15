@@ -2,6 +2,7 @@
 #define STENCIL_CT_CUH
 
 #include "utilities/types.cuh"
+#include "constants.cuh"
 
 namespace D3Q27
 {

@@ -7,7 +7,7 @@
 
 //--------------------- Initialize fields --------------------------------------------------
 
-__global__ void bubble(real_t *fr, real_t *fb, real_t *rhor, real_t *rhob)
+__global__ void bubble(pop_t *fr, pop_t *fb, real_t *rhor, real_t *rhob)
 {
     const label_t x = threadIdx.x + blockIdx.x * blockDim.x;
     const label_t y = threadIdx.y + blockIdx.y * blockDim.y;
@@ -23,7 +23,7 @@ __global__ void bubble(real_t *fr, real_t *fb, real_t *rhor, real_t *rhob)
     init_equilibrium(fr, fb, rhor, rhob, x, y, z);
 }
 
-__global__ void jetDensity(real_t __restrict__ *fr, real_t __restrict__ *fb,
+__global__ void jetDensity(pop_t __restrict__ *fr, pop_t __restrict__ *fb,
                            real_t __restrict__ *rhor, real_t __restrict__ *rhob)
 {
     const label_t x = threadIdx.x + blockIdx.x * blockDim.x;
@@ -38,7 +38,7 @@ __global__ void jetDensity(real_t __restrict__ *fr, real_t __restrict__ *fb,
     init_density_jet(fr, rhor, fb, rhob, x, y, z);
 }
 
-__global__ void Injet(real_t __restrict__ *fr, real_t __restrict__ *fb,
+__global__ void Injet(pop_t __restrict__ *fr, pop_t __restrict__ *fb,
                       real_t __restrict__ *rhor, real_t __restrict__ *rhob)
 {
     const label_t x = threadIdx.x + blockIdx.x * blockDim.x;
@@ -54,8 +54,8 @@ __global__ void Injet(real_t __restrict__ *fr, real_t __restrict__ *fb,
 
 //--------------- Main loop ----------------
 
-__global__ void Mfields(const __restrict__ real_t *fr, real_t __restrict__ *rhor,
-                        const real_t __restrict__ *fb, real_t __restrict__ *rhob,
+__global__ void Mfields(const pop_t __restrict__ *fr, real_t __restrict__ *rhor,
+                        const pop_t __restrict__ *fb, real_t __restrict__ *rhob,
                         real_t __restrict__ *ux, real_t __restrict__ *uy, real_t __restrict__ *uz,
                         real_t __restrict__ *Pixx, real_t __restrict__ *Pixy, real_t __restrict__ *Piyy,
                         real_t __restrict__ *Piyz, real_t __restrict__ *Pizz, real_t __restrict__ *Pixz)
@@ -72,7 +72,8 @@ __global__ void Mfields(const __restrict__ real_t *fr, real_t __restrict__ *rhor
     Mfields_calculation(fr, rhor, fb, rhob, ux, uy, uz, Pixx, Pixy, Piyy, Piyz, Pizz, Pixz, x, y, z);
 }
 
-__global__ void ColliStream(real_t __restrict__ *fir, const real_t __restrict__ *rhor, real_t __restrict__ *fib, const real_t __restrict__ *rhob,
+__global__ void ColliStream(pop_t __restrict__ *fir, const real_t __restrict__ *rhor,
+                            pop_t __restrict__ *fib, const real_t __restrict__ *rhob,
                             const real_t __restrict__ *ux, const real_t __restrict__ *uy, const real_t __restrict__ *uz,
                             const real_t __restrict__ *Pixx, const real_t __restrict__ *Pixy, const real_t __restrict__ *Piyy,
                             const real_t __restrict__ *Piyz, const real_t __restrict__ *Pizz, const real_t __restrict__ *Pixz)
@@ -106,6 +107,8 @@ __global__ void ColliStream(real_t __restrict__ *fir, const real_t __restrict__ 
     const real_t pizz = Pizz[id];
     const real_t pixz = Pixz[id];
 
+    const real_t omega = omega_sponge(y);
+
     const real_t I = real_t(4.0) * rr * rb * invrT * invrT;
 
     if (I <= real_t(1e-4))
@@ -118,7 +121,7 @@ __global__ void ColliStream(real_t __restrict__ *fir, const real_t __restrict__ 
                 const real_t gieq = feq<i>(rT, vx, vy, vz);
                 const real_t gineqr = fneqr<i>(pixx, pixy, piyy, piyz, pizz, pixz);
 
-                const real_t Omega1 = gieq + (static_cast<real_t>(1.0) - omegab) * gineqr;
+                const real_t Omega1 = gieq + (static_cast<real_t>(1.0) - omega) * gineqr;
 
                 const real_t gi = Omega1;
 
@@ -130,8 +133,8 @@ __global__ void ColliStream(real_t __restrict__ *fir, const real_t __restrict__ 
                                         static_cast<label_t>(yn),
                                         static_cast<label_t>(zn));
 
-                fir[fidx(idn, i)] = aR * gi;
-                fib[fidx(idn, i)] = aB * gi;
+                fir[fidx(idn, i)] = save_pop(aR * gi);
+                fib[fidx(idn, i)] = save_pop(aB * gi);
             });
         return;
     }
@@ -150,7 +153,7 @@ __global__ void ColliStream(real_t __restrict__ *fir, const real_t __restrict__ 
             const real_t gieq = feq<i>(rT, vx, vy, vz);
             const real_t gineqr = fneqr<i>(pixx, pixy, piyy, piyz, pizz, pixz);
 
-            const real_t Omega1 = gieq + (static_cast<real_t>(1.0) - omegab) * gineqr;
+            const real_t Omega1 = gieq + (static_cast<real_t>(1.0) - omega) * gineqr;
 
             const real_t Omega2R = Omega2<i>(Fxr, Fyr, Fzr, absforcer, Ar);
             const real_t Omega2B = Omega2<i>(Fxb, Fyb, Fzb, absforceb, Ab);
@@ -159,23 +162,23 @@ __global__ void ColliStream(real_t __restrict__ *fir, const real_t __restrict__ 
 
             const real_t Deltai = recolorDelta<i>(rr, rb, Fxr, Fyr, Fzr, absforcer);
 
-            const int xn = static_cast<int>(x) + D3Q27::cx<i>();
+            const int xn = wrapx(static_cast<int>(x) + D3Q27::cx<i>());
             const int yn = static_cast<int>(y) + D3Q27::cy<i>();
-            const int zn = static_cast<int>(z) + D3Q27::cz<i>();
+            const int zn = wrapz(static_cast<int>(z) + D3Q27::cz<i>());
 
             const label_t idn = idx(static_cast<label_t>(xn),
                                     static_cast<label_t>(yn),
                                     static_cast<label_t>(zn));
 
-            fir[fidx(idn, i)] = aR * gi + Deltai;
-            fib[fidx(idn, i)] = aB * gi - Deltai;
+            fir[fidx(idn, i)] = save_pop(aR * gi + Deltai);
+            fib[fidx(idn, i)] = save_pop(aB * gi - Deltai);
         });
 }
 
 //----------------- Boundary conditions -------------------------
 
-__global__ void inlet(real_t __restrict__ *fr, real_t __restrict__ *rhor,
-                      real_t __restrict__ *fb, real_t __restrict__ *rhob,
+__global__ void inlet(pop_t __restrict__ *fr, real_t __restrict__ *rhor,
+                      pop_t __restrict__ *fb, real_t __restrict__ *rhob,
                       const real_t __restrict__ *Pixx, const real_t __restrict__ *Pixy, const real_t __restrict__ *Piyy,
                       const real_t __restrict__ *Piyz, const real_t __restrict__ *Pizz, const real_t __restrict__ *Pixz)
 {
@@ -191,8 +194,8 @@ __global__ void inlet(real_t __restrict__ *fr, real_t __restrict__ *rhor,
     inlet_calculation(fr, rhor, fb, rhob, Pixx, Pixy, Piyy, Piyz, Pizz, Pixz, x, z);
 }
 
-__global__ void neumann(real_t __restrict__ *fir, real_t __restrict__ *rhor,
-                        real_t __restrict__ *fib, real_t __restrict__ *rhob,
+__global__ void neumann(pop_t __restrict__ *fir, real_t __restrict__ *rhor,
+                        pop_t __restrict__ *fib, real_t __restrict__ *rhob,
                         real_t __restrict__ *ux, real_t __restrict__ *uy, real_t __restrict__ *uz,
                         const real_t __restrict__ *Pixx, const real_t __restrict__ *Pixy, const real_t __restrict__ *Piyy,
                         const real_t __restrict__ *Piyz, const real_t __restrict__ *Pizz, const real_t __restrict__ *Pixz)

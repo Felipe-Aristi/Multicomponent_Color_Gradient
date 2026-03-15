@@ -9,8 +9,8 @@
 #include "../stencil.cuh"
 
 // Jet initialization
-__device__ void init_density_jet(real_t __restrict__ *fr, real_t __restrict__ *rhor,
-                                 real_t __restrict__ *fb, real_t __restrict__ *rhob,
+__device__ void init_density_jet(pop_t __restrict__ *fr, real_t __restrict__ *rhor,
+                                 pop_t __restrict__ *fb, real_t __restrict__ *rhob,
                                  const label_t x, const label_t y, const label_t z)
 {
 
@@ -22,13 +22,13 @@ __device__ void init_density_jet(real_t __restrict__ *fr, real_t __restrict__ *r
 #pragma unroll 27
     for (label_t i = 0; i < Q; ++i)
     {
-        fr[fidx(id, i)] = d_w[i] * rhor0;
-        fb[fidx(id, i)] = d_w[i] * real_t(0.0);
+        fr[fidx(id, i)] = save_pop(d_w[i] * rhor0);
+        fb[fidx(id, i)] = save_pop(d_w[i] * real_t(0.0));
     }
 }
 
-__device__ void jet_mask(real_t __restrict__ *fr, real_t __restrict__ *rhor,
-                         real_t __restrict__ *fb, real_t __restrict__ *rhob,
+__device__ void jet_mask(pop_t __restrict__ *fr, real_t __restrict__ *rhor,
+                         pop_t __restrict__ *fb, real_t __restrict__ *rhob,
                          const label_t x, const label_t z)
 {
 
@@ -42,8 +42,8 @@ __device__ void jet_mask(real_t __restrict__ *fr, real_t __restrict__ *rhor,
 #pragma unroll 27
     for (label_t i = 0; i < Q; ++i)
     {
-        fr[fidx(id, i)] = d_w[i] * rhor[id];
-        fb[fidx(id, i)] = d_w[i] * rhob[id];
+        fr[fidx(id, i)] = save_pop(d_w[i] * rhor[id]);
+        fb[fidx(id, i)] = save_pop(d_w[i] * rhob[id]);
     }
 }
 

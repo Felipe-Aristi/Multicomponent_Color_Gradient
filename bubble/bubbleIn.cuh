@@ -22,7 +22,7 @@ __device__ void bubble_mask(real_t *rhor, real_t *rhob,
     rhob[id] = is_bubble * rhob0;
 }
 
-__device__ void init_equilibrium(real_t *fr, real_t *fb,
+__device__ void init_equilibrium(pop_t *fr, pop_t *fb,
                                  const real_t *rhor, const real_t *rhob,
                                  const int x, const int y, const int z)
 {
@@ -33,8 +33,8 @@ __device__ void init_equilibrium(real_t *fr, real_t *fb,
 #pragma unroll 27
     for (int i = 0; i < Q; ++i)
     {
-        fr[fidx(id, i)] = d_w[i] * rhor_i;
-        fb[fidx(id, i)] = d_w[i] * rhob_i;
+        fr[fidx(id, i)] = save_pop(d_w[i] * rhor_i);
+        fb[fidx(id, i)] = save_pop(d_w[i] * rhob_i);
     }
 }
 

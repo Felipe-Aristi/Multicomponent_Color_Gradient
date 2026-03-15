@@ -10,8 +10,8 @@
 // -------------------- Device fields --------------------
 struct LbmDevice
 {
-    real_t *fir = nullptr;
-    real_t *fib = nullptr;
+    pop_t *fir = nullptr;
+    pop_t *fib = nullptr;
 
     real_t *rhor = nullptr;
     real_t *rhob = nullptr;
