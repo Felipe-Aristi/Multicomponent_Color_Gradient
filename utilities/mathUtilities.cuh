@@ -27,6 +27,16 @@ __device__ __forceinline__ real_t psi(const real_t rho_self,
     return real_t(rho_self - rho_other) / real_t(rho_self + rho_other);
 }
 
+// Extrapolation
+__device__ __forceinline__ real_t extrapolation(const real_t phiF,
+                                                const real_t phiFF)
+{
+    // return static_cast<real_t>(2.0) * phiF - phiFF;
+
+    constexpr real_t beta = real_t(0.5);
+    return phiF + beta * (phiF - phiFF);
+}
+
 // Convective oulet
 __device__ __forceinline__ real_t convectiveB(const real_t phiBold,
                                               const real_t phiF,
@@ -37,7 +47,7 @@ __device__ __forceinline__ real_t convectiveB(const real_t phiBold,
 
 // Sponge layer
 inline constexpr real_t sponge_gain = static_cast<real_t>(3.0);
-inline constexpr real_t sponge_K = static_cast<real_t>(100.0);
+inline constexpr real_t sponge_K = static_cast<real_t>(20.0);
 
 inline constexpr label_t sponge_y_end = NY - static_cast<label_t>(2);
 inline constexpr label_t sponge_y_start = sponge_y_end - sponge_cells + static_cast<label_t>(1);
@@ -49,7 +59,7 @@ __device__ __forceinline__ real_t clamp01(const real_t x) noexcept
 
 __device__ __forceinline__ real_t sponge_s(const label_t y) noexcept
 {
-    constexpr real_t inv_width = real_t(1.0) / real_t(sponge_y_end - sponge_y_start);
+    constexpr real_t inv_width = static_cast<real_t>(1.0) / real_t(sponge_y_end - sponge_y_start);
 
     const real_t yn = static_cast<real_t>(y);
     const real_t s = (yn - static_cast<real_t>(sponge_y_start)) * inv_width;
@@ -71,7 +81,7 @@ __device__ __forceinline__ real_t nu_sponge(const label_t y) noexcept
 
 __device__ __forceinline__ real_t tau_sponge(const label_t y) noexcept
 {
-    return real_t(0.5) + static_cast<real_t>((y) / cs2);
+    return real_t(0.5) + static_cast<real_t>((nu_sponge(y)) / cs2);
 }
 
 __device__ __forceinline__ real_t omega_sponge(const label_t y) noexcept

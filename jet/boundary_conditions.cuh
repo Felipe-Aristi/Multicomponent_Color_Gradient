@@ -22,15 +22,15 @@ __device__ __forceinline__ void inlet_calculation(pop_t __restrict__ *fr, real_t
                                                   const label_t x, const label_t z)
 {
 
-    const label_t yB = 0;
-    const label_t yF = 1;
+    const label_t yB = static_cast<label_t>(0);
+    const label_t yF = static_cast<label_t>(1);
 
     const label_t idB = idx(x, yB, z);
     const label_t idF = idx(x, yF, z);
 
     const label_t is_jet = isJet(x, z);
 
-    rhor[idB] = (real_t(1.0) - static_cast<real_t>(is_jet)) * rhor0;
+    rhor[idB] = (static_cast<real_t>(1.0) - static_cast<real_t>(is_jet)) * rhor0;
     rhob[idB] = static_cast<real_t>(is_jet) * rhob0;
 
     if (is_jet == 0)
@@ -54,6 +54,8 @@ __device__ __forceinline__ void inlet_calculation(pop_t __restrict__ *fr, real_t
     const real_t aR = rhor[idB] * (static_cast<real_t>(1) / rT);
     const real_t aB = rhob[idB] * (static_cast<real_t>(1) / rT);
 
+    const real_t oms = static_cast<real_t>(1.0) - omegab;
+
     constexpr_for<0, Q>(
         [&] __device__(auto I)
         {
@@ -69,14 +71,12 @@ __device__ __forceinline__ void inlet_calculation(pop_t __restrict__ *fr, real_t
             const real_t gieq = feq<i>(rT, uxb, uyb, uzb);
             const real_t gineqr = fneqr<i>(pixx, pixy, piyy, piyz, pizz, pixz);
 
-            const real_t gi = gieq + (static_cast<real_t>(1.0) - omegab) * gineqr;
+            const real_t gi = gieq + oms * gineqr;
 
             fr[fidx(fluid_node, i)] = save_pop(aR * gi);
             fb[fidx(fluid_node, i)] = save_pop(aB * gi);
         } });
 }
-
-// outlet boundary condition - Neumann zero gradient version
 
 __device__ __forceinline__ void neumann_calculation(pop_t __restrict__ *fir, real_t __restrict__ *rhor,
                                                     pop_t __restrict__ *fib, real_t __restrict__ *rhob,
@@ -85,17 +85,68 @@ __device__ __forceinline__ void neumann_calculation(pop_t __restrict__ *fir, rea
                                                     const real_t __restrict__ *Piyz, const real_t __restrict__ *Pizz, const real_t __restrict__ *Pixz,
                                                     const label_t x, const label_t z)
 {
-    const label_t yB = NY - 1;
-    const label_t yF = NY - 2;
+    const label_t yB = static_cast<label_t>(NY - 1);
+    const label_t yF = static_cast<label_t>(NY - 2);
 
     const label_t idB = idx(x, yB, z);
     const label_t idF = idx(x, yF, z);
 
-    rhor[idB] = rhor[idF];
-    rhob[idB] = rhob[idF];
-    ux[idB] = ux[idF];
-    uy[idB] = uy[idF]; // static_cast<real_t>(0.08) * (jet_velocity)
-    uz[idB] = uz[idF];
+    constexpr real_t eps = static_cast<real_t>(1.0e-8);
+
+    // -----------------------------
+    // 1) Old ghost state at outlet
+    // -----------------------------
+    const real_t rrB_old = rhor[idB];
+    const real_t rbB_old = rhob[idB];
+    const real_t rhoB_old = rrB_old + rbB_old;
+
+    const real_t jxB_old = rhoB_old * ux[idB];
+    const real_t jyB_old = rhoB_old * uy[idB];
+    const real_t jzB_old = rhoB_old * uz[idB];
+
+    // ------------------------------------
+    // 2) Current state on last fluid plane
+    // ------------------------------------
+    const real_t rrF = rhor[idF];
+    const real_t rbF = rhob[idF];
+    const real_t rhoF = rrF + rbF;
+
+    const real_t jxF = rhoF * ux[idF];
+    const real_t jyF = rhoF * uy[idF];
+    const real_t jzF = rhoF * uz[idF];
+
+    // ---------------------------------------------
+    // 3) Explicit convective update on ghost state
+    //    CFL-like clipping: 0 <= uc <= jet_velocity
+    // ---------------------------------------------
+    const real_t uc_raw = fminf(fmaxf(uy[idF], static_cast<real_t>(0.0)), jet_velocity);
+    const real_t uc = static_cast<real_t>(0.1) * uc_raw;
+
+    const real_t rrB_new = fmaxf(convectiveB(rrB_old, rrF, uc), eps);
+    const real_t rbB_new = fmaxf(convectiveB(rbB_old, rbF, uc), eps);
+
+    real_t jxB_new = convectiveB(jxB_old, jxF, uc);
+    real_t jyB_new = convectiveB(jyB_old, jyF, uc);
+    real_t jzB_new = convectiveB(jzB_old, jzF, uc);
+
+    // Optional but recommended: suppress backflow at the outlet ghost plane
+    jyB_new = fmaxf(jyB_new, static_cast<real_t>(0.0));
+
+    // -----------------------------------------
+    // 4) Rebuild ghost macroscopic variables
+    // -----------------------------------------
+    const real_t rhoT = fmaxf(rrB_new + rbB_new, eps);
+    const real_t invRhoT = static_cast<real_t>(1.0) / rhoT;
+
+    const real_t uxB = jxB_new * invRhoT;
+    const real_t uyB = jyB_new * invRhoT;
+    const real_t uzB = jzB_new * invRhoT;
+
+    rhor[idB] = rrB_new;
+    rhob[idB] = rbB_new;
+    ux[idB] = uxB;
+    uy[idB] = uyB;
+    uz[idB] = uzB;
 
     const real_t pixx = Pixx[idF];
     const real_t pixy = Pixy[idF];
@@ -104,104 +155,32 @@ __device__ __forceinline__ void neumann_calculation(pop_t __restrict__ *fir, rea
     const real_t pizz = Pizz[idF];
     const real_t pixz = Pixz[idF];
 
-    const real_t rhoT = rhor[idB] + rhob[idB];
-    const real_t invRhoT = static_cast<real_t>(1.0) / (rhoT);
+    const real_t aR = rrB_new * invRhoT;
+    const real_t aB = rbB_new * invRhoT;
 
-    const real_t aR = rhor[idB] * invRhoT;
-    const real_t aB = rhob[idB] * invRhoT;
-
-    const real_t omega = omega_sponge(yF);
-
-    // if (aB > static_cast<real_t>(0.5))
-    // {
-    //     uy[idB] = static_cast<real_t>(0.3) * (jet_velocity);
-    // }
+    const real_t omega = omegab; // omega_sponge(yF)
+    const real_t oms = static_cast<real_t>(1.0) - omega;
 
     constexpr_for<0, Q>(
         [&] __device__(auto I)
         {
-          constexpr label_t i = decltype(I)::value;
+            constexpr label_t i = decltype(I)::value;
 
-        if constexpr (D3Q27::cy<i>() == -1)
-        {
-            const int xn = static_cast<int>(x) + D3Q27::cx<i>();
-            const int zn = static_cast<int>(z) + D3Q27::cz<i>();
+            if constexpr (D3Q27::cy<i>() == -1)
+            {
+                const label_t xn = static_cast<label_t>(static_cast<int>(x) + D3Q27::cx<i>());
+                const label_t zn = static_cast<label_t>(static_cast<int>(z) + D3Q27::cz<i>());
 
-            const label_t fluid_node = idx(static_cast<label_t>(xn), yF, static_cast<label_t>(zn));
+                const label_t fluid_node = idx(xn, yF, zn);
 
-            const real_t gieq = feq<i>(rhoT, ux[idB], uy[idB], uz[idB]);
-            const real_t gineqr = fneqr<i>(pixx, pixy, piyy, piyz, pizz, pixz);
+                const real_t gieq = feq<i>(rhoT, uxB, uyB, uzB);
+                const real_t gineqr = fneqr<i>(pixx, pixy, piyy, piyz, pizz, pixz);
+                const real_t gi = gieq + oms * gineqr;
 
-            const real_t gi = gieq + (static_cast<real_t>(1.0) - omega) * gineqr;
-
-            fir[fidx(fluid_node, i)] = save_pop(aR * gi);
-            fib[fidx(fluid_node, i)] = save_pop(aB * gi);
-
-        } });
+                fir[fidx(fluid_node, i)] = save_pop(aR * gi);
+                fib[fidx(fluid_node, i)] = save_pop(aB * gi);
+            }
+        });
 }
-
-// Convective variation
-
-// __device__ __forceinline__ void neumann_calculation(pop_t __restrict__ *fir, real_t __restrict__ *rhor,
-//                                                     pop_t __restrict__ *fib, real_t __restrict__ *rhob,
-//                                                     real_t __restrict__ *ux, real_t __restrict__ *uy, real_t __restrict__ *uz,
-//                                                     const real_t __restrict__ *Pixx, const real_t __restrict__ *Pixy, const real_t __restrict__ *Piyy,
-//                                                     const real_t __restrict__ *Piyz, const real_t __restrict__ *Pizz, const real_t __restrict__ *Pixz,
-//                                                     const label_t x, const label_t z)
-// {
-//     const label_t yB = NY - 1;
-//     const label_t yF = NY - 2;
-
-//     const label_t idB = idx(x, yB, z);
-//     const label_t idF = idx(x, yF, z);
-
-//     constexpr real_t uc = static_cast<real_t>(1.0) * jet_velocity;
-
-//     rhor[idB] = rhor[idF];
-//     rhob[idB] = rhob[idF];
-
-//     real_t uxB = convectiveB(ux[idB], ux[idF], uc);
-//     real_t uyB = convectiveB(uy[idB], uy[idF], uc);
-//     real_t uzB = convectiveB(uz[idB], uz[idF], uc);
-
-//     ux[idB] = uxB;
-//     uy[idB] = uyB;
-//     uz[idB] = uzB;
-
-//     const real_t pixx = Pixx[idF];
-//     const real_t pixy = Pixy[idF];
-//     const real_t piyy = Piyy[idF];
-//     const real_t piyz = Piyz[idF];
-//     const real_t pizz = Pizz[idF];
-//     const real_t pixz = Pixz[idF];
-
-//     const real_t rhoT = rhor[idB] + rhob[idB];
-//     const real_t invRhoT = static_cast<real_t>(1.0) / (rhoT);
-
-//     const real_t aR = rhor[idB] * invRhoT;
-//     const real_t aB = rhob[idB] * invRhoT;
-
-//     constexpr_for<0, Q>(
-//         [&] __device__(auto I)
-//         {
-//           constexpr label_t i = decltype(I)::value;
-
-//         if constexpr (D3Q27::cy<i>() == -1)
-//         {
-//             const int xn = static_cast<int>(x) + D3Q27::cx<i>();
-//             const int zn = static_cast<int>(z) + D3Q27::cz<i>();
-
-//             const label_t fluid_node = idx(static_cast<label_t>(xn), yF, static_cast<label_t>(zn));
-
-//             const real_t gieq = feq<i>(rhoT, ux[idB], uy[idB], uz[idB]);
-//             const real_t gineqr = fneqr<i>(pixx, pixy, piyy, piyz, pizz, pixz);
-
-//             const real_t gi = gieq + (static_cast<real_t>(1.0) - omegab) * gineqr;
-
-//             fir[fidx(fluid_node, i)] = save_pop(aR * gi);
-//             fib[fidx(fluid_node, i)] = save_pop(aB * gi);
-
-//         } });
-// }
 
 #endif

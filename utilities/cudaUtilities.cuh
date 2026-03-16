@@ -6,17 +6,17 @@
 #include <cstdlib>
 
 // Cuda error checking
-#define CUDA_CHECK(call)                                                        \
-    do                                                                          \
-    {                                                                           \
-        cudaError_t err__ = (call);                                             \
-        if (err__ != cudaSuccess)                                               \
-        {                                                                       \
-            fprintf(stderr, "CUDA error %s (%d) at %s:%d\n",                    \
-                    cudaGetErrorString(err__), (int)err__, __FILE__, __LINE__); \
-            std::exit(1);                                                       \
-        }                                                                       \
-    } while (0)
+#define CUDA_CHECK(call)                                                                    \
+        do                                                                                  \
+        {                                                                                   \
+                cudaError_t err__ = (call);                                                 \
+                if (err__ != cudaSuccess)                                                   \
+                {                                                                           \
+                        fprintf(stderr, "CUDA error %s (%d) at %s:%d\n",                    \
+                                cudaGetErrorString(err__), (int)err__, __FILE__, __LINE__); \
+                        std::exit(1);                                                       \
+                }                                                                           \
+        } while (0)
 
 // Define if the stencil is correct and has the expected values
 /*         int hcx[Q], hcy[Q];

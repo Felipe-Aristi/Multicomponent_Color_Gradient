@@ -6,35 +6,35 @@
 
 // Steps
 inline constexpr int NSTEP = 200000;
-inline constexpr int NOUTPUT = 2000;
+inline constexpr int NOUTPUT = 3000;
 
 // Grid
-inline constexpr label_t sponge_cells = static_cast<label_t>(32);
-inline constexpr std::size_t NX = 200;
-inline constexpr std::size_t NZ = 200;
-inline constexpr std::size_t NY = 500;
-inline constexpr std::size_t Ncells = NX * NY * NZ;
+inline constexpr label_t NX = static_cast<label_t>(64);
+inline constexpr label_t NZ = static_cast<label_t>(64);
+inline constexpr label_t NY = static_cast<label_t>(256);
+inline constexpr label_t sponge_cells = static_cast<label_t>(1);
+
+inline constexpr label_t Ncells = NX * NY * NZ;
 
 // VELOCITY SET D2Q27 definition
-inline constexpr std::size_t Q = 27;
+inline constexpr label_t Q = 27;
 
 // Memory sizes
-inline constexpr std::size_t fSize = Ncells * (std::size_t)Q;
-
-inline constexpr std::size_t bytesCell = Ncells * sizeof(real_t);
+inline constexpr std::size_t bytesCell = std::size_t(Ncells) * sizeof(real_t);
+inline constexpr std::size_t fSize = std::size_t(Ncells) * (std::size_t)Q;
 inline constexpr std::size_t bytesF = fSize * sizeof(pop_t);
 
 // Jet parameters
-inline constexpr real_t jet_radius = 12.5;
-inline constexpr real_t jet_x0 = NX / 2.0;
-inline constexpr real_t jet_z0 = NZ / 2.0;
-inline constexpr real_t jet_velocity = 0.0465;
+inline constexpr real_t jet_radius = static_cast<real_t>(6);
+inline constexpr real_t jet_x0 = NX / static_cast<real_t>(2.0);
+inline constexpr real_t jet_z0 = NZ / static_cast<real_t>(2.0);
+inline constexpr real_t jet_velocity = static_cast<real_t>(0.0465);
 
 // Bubble parameters
-inline constexpr real_t bubble_radius = 10.0;
-inline constexpr real_t bubble_x0 = NX / 2.0;
-inline constexpr real_t bubble_y0 = NY / 2.0;
-inline constexpr real_t bubble_z0 = NZ / 2.0;
+inline constexpr real_t bubble_radius = static_cast<real_t>(10.0);
+inline constexpr real_t bubble_x0 = NX / static_cast<real_t>(2.0);
+inline constexpr real_t bubble_y0 = NY / static_cast<real_t>(2.0);
+inline constexpr real_t bubble_z0 = NZ / static_cast<real_t>(2.0);
 inline constexpr real_t pi = static_cast<real_t>(3.141592653589793);
 
 inline constexpr real_t cs2 = static_cast<real_t>(1.0 / 3.0);

@@ -136,6 +136,14 @@ namespace D3Q27
             return real_t(0.5773502691896258);
         }
     }
+
+    // Neighbours
+    template <label_t I>
+    __host__ __device__ constexpr int Neighbours() noexcept
+    {
+        return cx<I>() + NX * cy<I>() + NX * NY * cz<I>();
+    }
+
 }
 
 #endif

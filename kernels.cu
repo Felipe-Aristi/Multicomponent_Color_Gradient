@@ -107,7 +107,8 @@ __global__ void ColliStream(pop_t __restrict__ *fir, const real_t __restrict__ *
     const real_t pizz = Pizz[id];
     const real_t pixz = Pixz[id];
 
-    const real_t omega = omega_sponge(y);
+    const real_t omega = omegab; // omega_sponge(y)
+    const real_t oms = (static_cast<real_t>(1.0) - omega);
 
     const real_t I = real_t(4.0) * rr * rb * invrT * invrT;
 
@@ -121,7 +122,7 @@ __global__ void ColliStream(pop_t __restrict__ *fir, const real_t __restrict__ *
                 const real_t gieq = feq<i>(rT, vx, vy, vz);
                 const real_t gineqr = fneqr<i>(pixx, pixy, piyy, piyz, pizz, pixz);
 
-                const real_t Omega1 = gieq + (static_cast<real_t>(1.0) - omega) * gineqr;
+                const real_t Omega1 = gieq + oms * gineqr;
 
                 const real_t gi = Omega1;
 
@@ -142,8 +143,13 @@ __global__ void ColliStream(pop_t __restrict__ *fir, const real_t __restrict__ *
     real_t Fxr, Fyr, Fzr, Ar, absforcer;
     preOmega2(rhor, rhob, x, y, z, taur, taub, Fxr, Fyr, Fzr, absforcer, Ar);
 
-    real_t Fxb, Fyb, Fzb, Ab, absforceb;
-    preOmega2(rhob, rhor, x, y, z, taub, taur, Fxb, Fyb, Fzb, absforceb, Ab);
+    const real_t Fxb = -Fxr;
+    const real_t Fyb = -Fyr;
+    const real_t Fzb = -Fzr;
+    const real_t Ab = Ar;
+
+    // real_t Fxb, Fyb, Fzb, Ab, absforceb;
+    // preOmega2(rhob, rhor, x, y, z, taub, taur, Fxb, Fyb, Fzb, absforceb, Ab);
 
     constexpr_for<0, Q>(
         [&] __device__(auto I)
@@ -153,18 +159,18 @@ __global__ void ColliStream(pop_t __restrict__ *fir, const real_t __restrict__ *
             const real_t gieq = feq<i>(rT, vx, vy, vz);
             const real_t gineqr = fneqr<i>(pixx, pixy, piyy, piyz, pizz, pixz);
 
-            const real_t Omega1 = gieq + (static_cast<real_t>(1.0) - omega) * gineqr;
+            const real_t Omega1 = gieq + oms * gineqr;
 
             const real_t Omega2R = Omega2<i>(Fxr, Fyr, Fzr, absforcer, Ar);
-            const real_t Omega2B = Omega2<i>(Fxb, Fyb, Fzb, absforceb, Ab);
+            const real_t Omega2B = Omega2<i>(Fxb, Fyb, Fzb, absforcer, Ab);
 
             const real_t gi = Omega1 + Omega2R + Omega2B; //
 
             const real_t Deltai = recolorDelta<i>(rr, rb, Fxr, Fyr, Fzr, absforcer);
 
-            const int xn = wrapx(static_cast<int>(x) + D3Q27::cx<i>());
+            const int xn = static_cast<int>(x) + D3Q27::cx<i>();
             const int yn = static_cast<int>(y) + D3Q27::cy<i>();
-            const int zn = wrapz(static_cast<int>(z) + D3Q27::cz<i>());
+            const int zn = static_cast<int>(z) + D3Q27::cz<i>();
 
             const label_t idn = idx(static_cast<label_t>(xn),
                                     static_cast<label_t>(yn),
