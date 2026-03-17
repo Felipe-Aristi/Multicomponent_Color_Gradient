@@ -6,6 +6,7 @@
 #include "../utilities/indexing.cuh"
 #include "../utilities/types.cuh"
 #include "../utilities/mathUtilities.cuh"
+#include "../utilities/constexprFor.cuh"
 #include "../constants.cuh"
 #include "../lbm.cuh"
 #include "../forces.cuh"
@@ -63,10 +64,8 @@ __device__ __forceinline__ void inlet_calculation(pop_t __restrict__ *fr, real_t
 
        if constexpr (D3Q27::cy<i>() == 1)
         {
-            const int xn = static_cast<int>(x) + D3Q27::cx<i>();
-            const int zn = static_cast<int>(z) + D3Q27::cz<i>();
-
-            const label_t fluid_node = idx(static_cast<label_t>(xn), yF, static_cast<label_t>(zn));
+            const int fluid_nodei = static_cast<int>(idF) + D3Q27::offset_xz<i>();
+            const label_t fluid_node = static_cast<label_t>(fluid_nodei);
 
             const real_t gieq = feq<i>(rT, uxb, uyb, uzb);
             const real_t gineqr = fneqr<i>(pixx, pixy, piyy, piyz, pizz, pixz);
@@ -120,7 +119,7 @@ __device__ __forceinline__ void neumann_calculation(pop_t __restrict__ *fir, rea
     //    CFL-like clipping: 0 <= uc <= jet_velocity
     // ---------------------------------------------
     const real_t uc_raw = fminf(fmaxf(uy[idF], static_cast<real_t>(0.0)), jet_velocity);
-    const real_t uc = static_cast<real_t>(0.1) * uc_raw;
+    const real_t uc = static_cast<real_t>(1.0) * jet_velocity;
 
     const real_t rrB_new = fmaxf(convectiveB(rrB_old, rrF, uc), eps);
     const real_t rbB_new = fmaxf(convectiveB(rbB_old, rbF, uc), eps);
@@ -168,10 +167,8 @@ __device__ __forceinline__ void neumann_calculation(pop_t __restrict__ *fir, rea
 
             if constexpr (D3Q27::cy<i>() == -1)
             {
-                const label_t xn = static_cast<label_t>(static_cast<int>(x) + D3Q27::cx<i>());
-                const label_t zn = static_cast<label_t>(static_cast<int>(z) + D3Q27::cz<i>());
-
-                const label_t fluid_node = idx(xn, yF, zn);
+                const int fluid_nodei = static_cast<int>(idF) + D3Q27::offset_xz<i>();
+                const label_t fluid_node = static_cast<label_t>(fluid_nodei);
 
                 const real_t gieq = feq<i>(rhoT, uxB, uyB, uzB);
                 const real_t gineqr = fneqr<i>(pixx, pixy, piyy, piyz, pizz, pixz);

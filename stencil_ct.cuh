@@ -137,11 +137,18 @@ namespace D3Q27
         }
     }
 
-    // Neighbours
+    // Neighbours jump
     template <label_t I>
-    __host__ __device__ constexpr int Neighbours() noexcept
+    __host__ __device__ constexpr int offset() noexcept
     {
-        return cx<I>() + NX * cy<I>() + NX * NY * cz<I>();
+        return cx<I>() + static_cast<int>(NX) * cy<I>() +
+               static_cast<int>(NX) * static_cast<int>(NY) * cz<I>();
+    }
+
+    template <label_t I>
+    __host__ __device__ constexpr int offset_xz() noexcept
+    {
+        return cx<I>() + static_cast<int>(NX) * static_cast<int>(NY) * cz<I>();
     }
 
 }

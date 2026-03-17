@@ -8,9 +8,10 @@
 #include "utilities/indexing.cuh"
 #include "utilities/types.cuh"
 #include "utilities/mathUtilities.cuh"
+#include "utilities/constexprFor.cuh"
 
 __device__ __forceinline__ void force(const real_t __restrict__ *rho_self, const real_t __restrict__ *rho_other,
-                                      const label_t x, const label_t y, const label_t z,
+                                      const label_t id,
                                       real_t &Fx_component, real_t &Fy_component, real_t &Fz_component)
 {
     real_t sx = static_cast<real_t>(0.0);
@@ -27,15 +28,9 @@ __device__ __forceinline__ void force(const real_t __restrict__ *rho_self, const
             constexpr real_t cz = static_cast<real_t>(D3Q27::cz<i>());
             constexpr real_t wi = D3Q27::w<i>();
 
-            const int xn = static_cast<int>(x) + D3Q27::cx<i>();
-            const int yn = static_cast<int>(y) + D3Q27::cy<i>();
-            const int zn = static_cast<int>(z) + D3Q27::cz<i>();
+            const int idn = static_cast<int>(id) + D3Q27::offset<i>();
 
-            const label_t idn = idx(static_cast<label_t>(xn),
-                                    static_cast<label_t>(yn),
-                                    static_cast<label_t>(zn));
-
-            real_t psi_n = psi(rho_self[idn], rho_other[idn]);
+            const real_t psi_n = psi(rho_self[idn], rho_other[idn]);
 
             sx += wi * psi_n * cx;
             sy += wi * psi_n * cy;
@@ -96,14 +91,14 @@ __device__ __forceinline__ real_t A_calculation(const real_t tau) noexcept
 
 __device__ __forceinline__ void preOmega2(const real_t __restrict__ *rho_self,
                                           const real_t __restrict__ *rho_other,
-                                          const label_t x, const label_t y, const label_t z,
+                                          const label_t id,
                                           real_t tau_self0, real_t tau_other0,
                                           real_t &Fx, real_t &Fy, real_t &Fz,
                                           real_t &absF, real_t &A)
 {
-    const label_t id = idx(x, y, z);
 
-    force(rho_self, rho_other, x, y, z, Fx, Fy, Fz);
+    force(rho_self, rho_other, id, Fx, Fy, Fz);
+
     real_t tau_eff = tau_interface(rho_self[id], tau_self0, rho_other[id], tau_other0);
     A = A_calculation(tau_eff);
     absF = absforce_calcul(Fx, Fy, Fz);

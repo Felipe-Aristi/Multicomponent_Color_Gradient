@@ -18,27 +18,4 @@
                 }                                                                           \
         } while (0)
 
-// Define if the stencil is correct and has the expected values
-/*         int hcx[Q], hcy[Q];
-        real_t hw[Q];
-
-        CUDA_CHECK(cudaMemcpyFromSymbol(hcx, d_cx, sizeof(hcx)));
-        CUDA_CHECK(cudaMemcpyFromSymbol(hcy, d_cy, sizeof(hcy)));
-        CUDA_CHECK(cudaMemcpyFromSymbol(hw, d_w, sizeof(hw)));
-
-        printf("cx = ");
-        for (int i = 0; i < Q; i++)
-                printf("%d ", hcx[i]);
-        printf("\n");
-
-        printf("cy = ");
-        for (int i = 0; i < Q; i++)
-                printf("%d ", hcy[i]);
-        printf("\n");
-
-        printf("w  = ");
-        for (int i = 0; i < Q; i++)
-                printf("%.10g ", (double)hw[i]);
-        printf("\n"); */
-
 #endif

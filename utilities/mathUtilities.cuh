@@ -89,21 +89,4 @@ __device__ __forceinline__ real_t omega_sponge(const label_t y) noexcept
     return static_cast<real_t>(static_cast<real_t>(1.0) / tau_sponge(y));
 }
 
-// Constexpr_for ---> for esquisito pra os amigos
-template <typename T, T V>
-using integralConstant = std::integral_constant<T, V>;
-
-template <const label_t Start, const label_t End, typename F>
-__device__ inline constexpr void constexpr_for(F &&f) noexcept
-{
-    if constexpr (Start < End)
-    {
-        f(integralConstant<label_t, Start>());
-        if constexpr (Start + 1 < End)
-        {
-            constexpr_for<Start + 1, End>(std::forward<F>(f));
-        }
-    }
-}
-
 #endif

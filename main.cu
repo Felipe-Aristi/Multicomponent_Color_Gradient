@@ -27,19 +27,18 @@ int main()
 
     launch_jetDensity(cfg, d);
     launch_Injet(cfg, d);
-
     // launch_bubble(cfg, d);
+
     CUDA_CHECK(cudaDeviceSynchronize());
 
     cudaEvent_t evStart, evStop;
     CUDA_CHECK(cudaEventCreate(&evStart));
     CUDA_CHECK(cudaEventCreate(&evStop));
-    double total_ms = 0.0;
+    real_t total_ms = static_cast<real_t>(0.0);
+    CUDA_CHECK(cudaEventRecord(evStart));
 
     for (int step = 0; step < NSTEP; ++step)
     {
-
-        CUDA_CHECK(cudaEventRecord(evStart));
 
         launch_Macros(cfg, d);
 
@@ -48,25 +47,31 @@ int main()
         launch_inlet_bc(cfg, d);
         launch_neumann_bc(cfg, d);
 
-        CUDA_CHECK(cudaEventRecord(evStop));
-        CUDA_CHECK(cudaEventSynchronize(evStop));
-
-        float step_ms = 0.0f;
-        CUDA_CHECK(cudaEventElapsedTime(&step_ms, evStart, evStop));
-
-        total_ms += step_ms;
-
-        const double mlups_step = static_cast<double>(Ncells) / (static_cast<double>(step_ms) * 1.0e3);
-        const double mlups_avg = static_cast<double>((step + 1) * Ncells) / (total_ms * 1.0e3);
-
         if (step % 10 == 0)
         {
+            CUDA_CHECK(cudaEventRecord(evStop));
+            CUDA_CHECK(cudaEventSynchronize(evStop));
+
+            real_t window_ms = static_cast<real_t>(0.0);
+            CUDA_CHECK(cudaEventElapsedTime(&window_ms, evStart, evStop));
+
+            total_ms += window_ms;
+
+            const real_t steps_in_window = static_cast<real_t>(10.0);
+            const real_t mlups_window =
+                (steps_in_window * static_cast<real_t>(Ncells)) / (window_ms * static_cast<real_t>(1.0e3));
+
+            const real_t mlups_avg =
+                (static_cast<real_t>(step + 1) * static_cast<real_t>(Ncells)) / (total_ms * static_cast<real_t>(1.0e3));
+
             std::cout << std::fixed << std::setprecision(3)
-                      << "step " << step << "/" << NSTEP
-                      << " | dt = " << step_ms << " ms"
-                      << " | MLUPS(step) = " << mlups_step
+                      << "step " << (step + 1) << "/" << NSTEP
+                      << " | dt_window = " << window_ms << " ms"
+                      << " | MLUPS = " << mlups_window
                       << " | MLUPS(avg) = " << mlups_avg
                       << "\n";
+
+            CUDA_CHECK(cudaEventRecord(evStart));
         }
 
         // output
@@ -77,6 +82,11 @@ int main()
             write_vti_step_device(step, d, h);
         }
     }
+
+    CUDA_CHECK(cudaDeviceSynchronize());
+
+    CUDA_CHECK(cudaEventDestroy(evStart));
+    CUDA_CHECK(cudaEventDestroy(evStop));
 
     free_device_memory(d);
     free_host_memory(h);

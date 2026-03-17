@@ -8,6 +8,7 @@
 #include "utilities/indexing.cuh"
 #include "utilities/types.cuh"
 #include "utilities/mathUtilities.cuh"
+#include "utilities/constexprFor.cuh"
 
 //----------- Distribution functions -----------
 
