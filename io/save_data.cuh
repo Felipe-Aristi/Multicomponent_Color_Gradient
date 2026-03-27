@@ -20,7 +20,7 @@
 // Folder: <cwd>/LBM_bubble/vti
 inline std::filesystem::path default_out_dir()
 {
-    return std::filesystem::current_path() / "JET_VTK" / "vti";
+    return std::filesystem::current_path() / ("JET_VTK_WE_" + std::to_string(WeberInteger)) / "vti";
 }
 
 inline const char *vtk_real_type()

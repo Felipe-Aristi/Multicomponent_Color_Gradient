@@ -8,7 +8,10 @@
 
 //--------------------- Initialize fields --------------------------------------------------
 
-__global__ void bubble(pop_t *fr, pop_t *fb, real_t *rhor, real_t *rhob)
+static constexpr const std::size_t THREADS_PER_BLOCK = 1024;
+static constexpr const std::size_t BLOCKS_PER_MP = 1;
+
+__launch_bounds__(THREADS_PER_BLOCK, BLOCKS_PER_MP) __global__ void bubble(pop_t *fr, pop_t *fb, real_t *rhor, real_t *rhob)
 {
     const label_t x = threadIdx.x + blockIdx.x * blockDim.x;
     const label_t y = threadIdx.y + blockIdx.y * blockDim.y;
@@ -24,8 +27,8 @@ __global__ void bubble(pop_t *fr, pop_t *fb, real_t *rhor, real_t *rhob)
     init_equilibrium(fr, fb, rhor, rhob, x, y, z);
 }
 
-__global__ void jetDensity(pop_t __restrict__ *fr, pop_t __restrict__ *fb,
-                           real_t __restrict__ *rhor, real_t __restrict__ *rhob)
+__launch_bounds__(THREADS_PER_BLOCK, BLOCKS_PER_MP) __global__ void jetDensity(pop_t __restrict__ *fr, pop_t __restrict__ *fb,
+                                                                               real_t __restrict__ *rhor, real_t __restrict__ *rhob)
 {
     const label_t x = threadIdx.x + blockIdx.x * blockDim.x;
     const label_t y = threadIdx.y + blockIdx.y * blockDim.y;
@@ -39,8 +42,8 @@ __global__ void jetDensity(pop_t __restrict__ *fr, pop_t __restrict__ *fb,
     init_density_jet(fr, rhor, fb, rhob, x, y, z);
 }
 
-__global__ void Injet(pop_t __restrict__ *fr, pop_t __restrict__ *fb,
-                      real_t __restrict__ *rhor, real_t __restrict__ *rhob)
+__launch_bounds__(THREADS_PER_BLOCK, BLOCKS_PER_MP) __global__ void Injet(pop_t __restrict__ *fr, pop_t __restrict__ *fb,
+                                                                          real_t __restrict__ *rhor, real_t __restrict__ *rhob)
 {
     const label_t x = threadIdx.x + blockIdx.x * blockDim.x;
     const label_t z = threadIdx.y + blockIdx.y * blockDim.y;
@@ -55,11 +58,11 @@ __global__ void Injet(pop_t __restrict__ *fr, pop_t __restrict__ *fb,
 
 //--------------- Main loop ----------------
 
-__global__ void Mfields(const pop_t __restrict__ *fr, real_t __restrict__ *rhor,
-                        const pop_t __restrict__ *fb, real_t __restrict__ *rhob,
-                        real_t __restrict__ *ux, real_t __restrict__ *uy, real_t __restrict__ *uz,
-                        real_t __restrict__ *Pixx, real_t __restrict__ *Pixy, real_t __restrict__ *Piyy,
-                        real_t __restrict__ *Piyz, real_t __restrict__ *Pizz, real_t __restrict__ *Pixz)
+__launch_bounds__(THREADS_PER_BLOCK, BLOCKS_PER_MP) __global__ void Mfields(const pop_t __restrict__ *fr, real_t __restrict__ *rhor,
+                                                                            const pop_t __restrict__ *fb, real_t __restrict__ *rhob,
+                                                                            real_t __restrict__ *ux, real_t __restrict__ *uy, real_t __restrict__ *uz,
+                                                                            real_t __restrict__ *Pixx, real_t __restrict__ *Pixy, real_t __restrict__ *Piyy,
+                                                                            real_t __restrict__ *Piyz, real_t __restrict__ *Pizz, real_t __restrict__ *Pixz)
 {
     const label_t x = threadIdx.x + blockIdx.x * blockDim.x;
     const label_t y = threadIdx.y + blockIdx.y * blockDim.y;
@@ -73,11 +76,11 @@ __global__ void Mfields(const pop_t __restrict__ *fr, real_t __restrict__ *rhor,
     Mfields_calculation(fr, rhor, fb, rhob, ux, uy, uz, Pixx, Pixy, Piyy, Piyz, Pizz, Pixz, x, y, z);
 }
 
-__global__ void ColliStream(pop_t __restrict__ *fir, const real_t __restrict__ *rhor,
-                            pop_t __restrict__ *fib, const real_t __restrict__ *rhob,
-                            const real_t __restrict__ *ux, const real_t __restrict__ *uy, const real_t __restrict__ *uz,
-                            const real_t __restrict__ *Pixx, const real_t __restrict__ *Pixy, const real_t __restrict__ *Piyy,
-                            const real_t __restrict__ *Piyz, const real_t __restrict__ *Pizz, const real_t __restrict__ *Pixz)
+__launch_bounds__(THREADS_PER_BLOCK, BLOCKS_PER_MP) __global__ void ColliStream(pop_t __restrict__ *fir, const real_t __restrict__ *rhor,
+                                                                                pop_t __restrict__ *fib, const real_t __restrict__ *rhob,
+                                                                                const real_t __restrict__ *ux, const real_t __restrict__ *uy, const real_t __restrict__ *uz,
+                                                                                const real_t __restrict__ *Pixx, const real_t __restrict__ *Pixy, const real_t __restrict__ *Piyy,
+                                                                                const real_t __restrict__ *Piyz, const real_t __restrict__ *Pizz, const real_t __restrict__ *Pixz)
 {
     const label_t x = threadIdx.x + blockIdx.x * blockDim.x;
     const label_t y = threadIdx.y + blockIdx.y * blockDim.y;
@@ -184,10 +187,10 @@ __global__ void ColliStream(pop_t __restrict__ *fir, const real_t __restrict__ *
 
 //----------------- Boundary conditions -------------------------
 
-__global__ void inlet(pop_t __restrict__ *fr, real_t __restrict__ *rhor,
-                      pop_t __restrict__ *fb, real_t __restrict__ *rhob,
-                      const real_t __restrict__ *Pixx, const real_t __restrict__ *Pixy, const real_t __restrict__ *Piyy,
-                      const real_t __restrict__ *Piyz, const real_t __restrict__ *Pizz, const real_t __restrict__ *Pixz)
+__launch_bounds__(THREADS_PER_BLOCK, BLOCKS_PER_MP) __global__ void inlet(pop_t __restrict__ *fr, real_t __restrict__ *rhor,
+                                                                          pop_t __restrict__ *fb, real_t __restrict__ *rhob,
+                                                                          const real_t __restrict__ *Pixx, const real_t __restrict__ *Pixy, const real_t __restrict__ *Piyy,
+                                                                          const real_t __restrict__ *Piyz, const real_t __restrict__ *Pizz, const real_t __restrict__ *Pixz)
 {
 
     const label_t x = blockIdx.x * blockDim.x + threadIdx.x;
@@ -201,11 +204,11 @@ __global__ void inlet(pop_t __restrict__ *fr, real_t __restrict__ *rhor,
     inlet_calculation(fr, rhor, fb, rhob, Pixx, Pixy, Piyy, Piyz, Pizz, Pixz, x, z);
 }
 
-__global__ void neumann(pop_t __restrict__ *fir, real_t __restrict__ *rhor,
-                        pop_t __restrict__ *fib, real_t __restrict__ *rhob,
-                        real_t __restrict__ *ux, real_t __restrict__ *uy, real_t __restrict__ *uz,
-                        const real_t __restrict__ *Pixx, const real_t __restrict__ *Pixy, const real_t __restrict__ *Piyy,
-                        const real_t __restrict__ *Piyz, const real_t __restrict__ *Pizz, const real_t __restrict__ *Pixz)
+__launch_bounds__(THREADS_PER_BLOCK, BLOCKS_PER_MP) __global__ void neumann(pop_t __restrict__ *fir, real_t __restrict__ *rhor,
+                                                                            pop_t __restrict__ *fib, real_t __restrict__ *rhob,
+                                                                            real_t __restrict__ *ux, real_t __restrict__ *uy, real_t __restrict__ *uz,
+                                                                            const real_t __restrict__ *Pixx, const real_t __restrict__ *Pixy, const real_t __restrict__ *Piyy,
+                                                                            const real_t __restrict__ *Piyz, const real_t __restrict__ *Pizz, const real_t __restrict__ *Pixz)
 {
 
     const label_t x = blockIdx.x * blockDim.x + threadIdx.x;

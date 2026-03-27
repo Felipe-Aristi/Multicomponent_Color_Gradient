@@ -10,12 +10,14 @@
 #include "launch.cuh"
 #include "io/save_data.cuh"
 
+constexpr const int deviceID = 0;
+
 int main()
 {
-    CUDA_CHECK(cudaSetDevice(0));
+    CUDA_CHECK(cudaSetDevice(deviceID));
 
     cudaDeviceProp prop{};
-    CUDA_CHECK(cudaGetDeviceProperties(&prop, 0));
+    CUDA_CHECK(cudaGetDeviceProperties(&prop, deviceID));
     std::cout << "GPU: " << prop.name << "\n";
 
     CudaConfig cfg = make_cudaConfig();
