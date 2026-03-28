@@ -44,4 +44,15 @@ __host__ __device__ __forceinline__ dim3 grid2D_xz(const CudaConfig &cfg)
         1);
 }
 
+
+__device__ __forceinline__
+size_t idxDomain()
+{
+    const size_t x = (size_t)blockIdx.x * (size_t)blockDim.x + (size_t)threadIdx.x;
+    const size_t y = (size_t)blockIdx.y * (size_t)blockDim.y + (size_t)threadIdx.y;
+    const size_t z = (size_t)blockIdx.z * (size_t)blockDim.z + (size_t)threadIdx.z;
+
+    return x + (size_t)NX * (y + (size_t)NY * z);
+}
+
 #endif

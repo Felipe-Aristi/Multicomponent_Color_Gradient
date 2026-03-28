@@ -5,6 +5,7 @@
 #include "stencil_ct.cuh"
 #include "collisionOperators.cuh"
 #include "utilities/constexprFor.cuh"
+#include "utilities/cudaConfig.cuh"
 
 //--------------------- Initialize fields --------------------------------------------------
 
@@ -183,6 +184,46 @@ __launch_bounds__(THREADS_PER_BLOCK, BLOCKS_PER_MP) __global__ void ColliStream(
             fir[fidx(idn, i)] = save_pop(aR * gi + Deltai);
             fib[fidx(idn, i)] = save_pop(aB * gi - Deltai);
         });
+}
+
+
+__global__ void compute_total_tke(const real_t *__restrict__ ux,
+                                  const real_t *__restrict__ uy,
+                                  const real_t *__restrict__ uz,
+                                  real_t *__restrict__ tke_total)
+{
+    const label_t x = threadIdx.x + blockIdx.x * blockDim.x;
+    const label_t y = threadIdx.y + blockIdx.y * blockDim.y;
+    const label_t z = threadIdx.z + blockIdx.z * blockDim.z;
+
+    if (x >= NX || y >= NY || z >= NZ)
+    {
+        return;
+    }
+
+    const size_t id = idxDomain();
+
+    const real_t vx = ux[id];
+    const real_t vy = uy[id];
+    const real_t vz = uz[id];
+
+    const real_t ke = real_t(0.5) * (vx * vx + vy * vy + vz * vz);
+
+    atomicAdd(tke_total, ke);
+}
+
+__global__ void update_tke_average(real_t *tke_avg,
+                                   const real_t *tke_total,
+                                   unsigned int step,
+                                   unsigned int init_step)
+{
+    if (blockIdx.x == 0 && threadIdx.x == 0)
+    {
+        const unsigned int sample_count = (step - init_step) / NOUTPUT;
+        const real_t count = static_cast<real_t>(sample_count);
+
+        *tke_avg = (*tke_avg * count + *tke_total) / (count + static_cast<real_t>(1));
+    }
 }
 
 //----------------- Boundary conditions -------------------------

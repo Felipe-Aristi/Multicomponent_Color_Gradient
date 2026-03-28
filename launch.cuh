@@ -35,6 +35,31 @@ inline void launch_Macros(const CudaConfig &cfg, const LbmDevice &d, cudaStream_
     CUDA_CHECK(cudaGetLastError());
 }
 
+inline void launch_compute_total_tke(const CudaConfig &cfg,
+                                     const LbmDevice &d,
+                                     real_t *d_tke_total,
+                                     cudaStream_t stream = 0)
+{
+    compute_total_tke<<<cfg.grid, cfg.block, 0, stream>>>(
+        d.ux, d.uy, d.uz,
+        d_tke_total);
+
+    CUDA_CHECK(cudaGetLastError());
+}
+
+inline void launch_update_tke_average(real_t *d_tke_avg,
+                                      const real_t *d_tke_total,
+                                      unsigned int step,
+                                      unsigned int init_step,
+                                      cudaStream_t stream = 0)
+{
+    update_tke_average<<<1, 1, 0, stream>>>(
+        d_tke_avg, d_tke_total, step, init_step);
+
+    CUDA_CHECK(cudaGetLastError());
+}
+
+
 inline void launch_collistream(const CudaConfig &cfg, const LbmDevice &d, cudaStream_t stream = 0)
 {
     ColliStream<<<cfg.grid, cfg.block, 0, stream>>>(

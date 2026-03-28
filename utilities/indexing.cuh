@@ -18,4 +18,6 @@ __host__ __device__ [[nodiscard]] constexpr inline label_t fidx(const label_t id
     return i * Ncells + id;
 }
 
+
+
 #endif

@@ -14,6 +14,7 @@ obj/
 *.cubin
 *.fatbin
 
+
 # editor / OS
 .vscode/
 *.swp
@@ -21,3 +22,6 @@ obj/
 
 # Do not upload .vtk files!
 LBM_bubble/vtk/*.vtk
+*JET_VTK/
+
+post/*resultsJET/
