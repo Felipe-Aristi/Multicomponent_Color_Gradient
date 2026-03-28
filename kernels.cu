@@ -8,7 +8,7 @@
 
 //--------------------- Initialize fields --------------------------------------------------
 
-static constexpr const std::size_t THREADS_PER_BLOCK = 1024;
+static constexpr const std::size_t THREADS_PER_BLOCK = 32 * 4 * 2;
 static constexpr const std::size_t BLOCKS_PER_MP = 1;
 
 __launch_bounds__(THREADS_PER_BLOCK, BLOCKS_PER_MP) __global__ void bubble(pop_t *fr, pop_t *fb, real_t *rhor, real_t *rhob)
