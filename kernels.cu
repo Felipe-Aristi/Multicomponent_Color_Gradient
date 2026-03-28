@@ -226,6 +226,27 @@ __global__ void update_tke_average(real_t *tke_avg,
     }
 }
 
+__global__ void update_uy_average(const real_t *__restrict__ uy,
+                                  real_t *__restrict__ uy_avg,
+                                  unsigned int step,
+                                  unsigned int step_uy_avg_start)
+{
+    const label_t x = threadIdx.x + blockIdx.x * blockDim.x;
+    const label_t y = threadIdx.y + blockIdx.y * blockDim.y;
+    const label_t z = threadIdx.z + blockIdx.z * blockDim.z;
+
+    if (x >= NX || y >= NY || z >= NZ)
+    {
+        return;
+    }
+
+    const size_t id = idxDomain();
+
+    const unsigned int sample_count = step - step_uy_avg_start;
+    const real_t count = static_cast<real_t>(sample_count);
+
+    uy_avg[id] = (uy_avg[id] * count + uy[id]) / (count + static_cast<real_t>(1));
+}
 //----------------- Boundary conditions -------------------------
 
 __launch_bounds__(THREADS_PER_BLOCK, BLOCKS_PER_MP) __global__ void inlet(pop_t __restrict__ *fr, real_t __restrict__ *rhor,

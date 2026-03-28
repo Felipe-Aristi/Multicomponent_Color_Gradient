@@ -73,7 +73,7 @@ def totalKineticEnergy(property, field, inputPath, outputPath):
         boxMarginScale=0.085,
         yLabelAngle=0,
         useGrid=True,
-        fontSize = 18,
+        fontSize = 14,
         dpi=300
     )
 

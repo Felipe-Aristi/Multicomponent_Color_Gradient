@@ -18,24 +18,32 @@ constexpr const int deviceID = 0;
 
 int main()
 {
-    // ----------------------Kinetic energy inicialization ---------------------------
+    // ----------------------Kinetic energy and uyAverage inicialization ---------------------------
+    real_t *d_uy_avg;
     real_t *d_tke_total;
     real_t *d_tke_avg;
     real_t h_tke_total = static_cast<real_t>(0);
     real_t h_tke_avg   = static_cast<real_t>(0); 
     real_t h_tke_avg_prev = static_cast<real_t>(0);
-    // real_t h_tke_avg_diff = static_cast<real_t>(0);
     real_t delta = static_cast<real_t>(0);
     real_t abs_delta = static_cast<real_t>(0);
+    const real_t tke_tolerance = static_cast<real_t>(1e-4);
+    // real_t h_tke_avg_diff = static_cast<real_t>(0);
 
-
+    bool start_uy_average = false;
     bool first_tke_sample = true;
+    unsigned int step_uy_avg_start = 0;
 
+    real_t *h_uy_avg = (real_t *)malloc(Ncells * sizeof(real_t));
     CUDA_CHECK(cudaMalloc((void **)&d_tke_avg, sizeof(real_t)));
     CUDA_CHECK(cudaMalloc((void **)&d_tke_total, sizeof(real_t)));
+    CUDA_CHECK(cudaMalloc((void **)&d_uy_avg, Ncells * sizeof(real_t)));
+
     CUDA_CHECK(cudaMemset(d_tke_total, 0, sizeof(real_t)));
     CUDA_CHECK(cudaMemset(d_tke_avg, 0, sizeof(real_t)));
+    CUDA_CHECK(cudaMemset(d_uy_avg, 0, Ncells * sizeof(real_t)));
 
+    std::string path_uy_avg = std::string("./JET_VTK/") + "/uy_avg.bin";
     std::string path_total = std::string("./JET_VTK/") + "/tke_total.bin";
 	std::string path_avg = std::string("./JET_VTK/")  + "/tke_avg.bin";
 	std::string path_diff = std::string("./JET_VTK/")  + "/tke_diff.bin";
@@ -43,6 +51,8 @@ int main()
 	FILE *f_tke_total = fopen(path_total.c_str(), "wb");
 	FILE *f_tke_avg = fopen(path_avg.c_str(), "wb");
 	FILE *f_tke_diff = fopen(path_diff.c_str(), "wb");
+    FILE *f_uy_avg = fopen(path_uy_avg.c_str(), "wb");
+
 
     // --------------------- End of kinetic energy inicialization -----------------------------
 
@@ -77,6 +87,10 @@ int main()
     {
 
         launch_Macros(cfg, d);
+        if (start_uy_average)
+        {
+            launch_update_uy_average(cfg, d, d_uy_avg, step, step_uy_avg_start);
+        }
 
         launch_collistream(cfg, d);
 
@@ -126,20 +140,36 @@ int main()
 
             if (first_tke_sample)
             {
-
+                delta = static_cast<real_t>(0);
+                abs_delta = static_cast<real_t>(0);
                 first_tke_sample = false;
             }
             else
             {
                 delta = h_tke_avg - h_tke_avg_prev;
                 abs_delta = std::abs(delta);
+
+                if (!start_uy_average && !first_tke_sample && abs_delta < tke_tolerance)
+                {
+                    start_uy_average = true;
+                    step_uy_avg_start = step;
+
+                    std::cout << "Iniciando media temporal de uy no step "
+                            << step_uy_avg_start
+                            << " | abs_delta_tke_avg = " << abs_delta
+                            << "\n";
+                }
+
             }
+
             std::cout << std::scientific
                 << "step " << step
                 << " | tke_prev = " << h_tke_avg_prev
                 << " | tke_avg = " << h_tke_avg
                 << " | delta_tke_avg = " << abs_delta
                 << "\n";
+
+
 
             h_tke_avg_prev = h_tke_avg;
 
@@ -153,11 +183,18 @@ int main()
             // write_vti_step_device(step, d, h);
         }
     }
-
     CUDA_CHECK(cudaDeviceSynchronize());
+    CUDA_CHECK(cudaMemcpy(h_uy_avg, d_uy_avg,
+                            Ncells * sizeof(real_t),
+                            cudaMemcpyDeviceToHost));
+
+    size_t written_uy = fwrite(h_uy_avg, sizeof(real_t), Ncells, f_uy_avg);
+    fflush(f_uy_avg);
 
     CUDA_CHECK(cudaEventDestroy(evStart));
     CUDA_CHECK(cudaEventDestroy(evStop));
+
+    fclose(f_uy_avg);
 
     fclose(f_tke_total);
     fclose(f_tke_avg);
@@ -165,9 +202,13 @@ int main()
 
     cudaFree(d_tke_total);
     cudaFree(d_tke_avg);
+    cudaFree(d_uy_avg);
+
 
     free_device_memory(d);
     free_host_memory(h);
+    free(h_uy_avg);
+
 
     CUDA_CHECK(cudaDeviceReset());
     return 0;

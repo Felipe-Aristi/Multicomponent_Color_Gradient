@@ -59,6 +59,19 @@ inline void launch_update_tke_average(real_t *d_tke_avg,
     CUDA_CHECK(cudaGetLastError());
 }
 
+inline void launch_update_uy_average(const CudaConfig &cfg,
+                                     const LbmDevice &d,
+                                     real_t *d_uy_avg,
+                                     unsigned int step,
+                                     unsigned int step_uy_avg_start,
+                                     cudaStream_t stream = 0)
+{
+    update_uy_average<<<cfg.grid, cfg.block, 0, stream>>>(
+        d.uy, d_uy_avg, step, step_uy_avg_start);
+
+    CUDA_CHECK(cudaGetLastError());
+}
+
 
 inline void launch_collistream(const CudaConfig &cfg, const LbmDevice &d, cudaStream_t stream = 0)
 {

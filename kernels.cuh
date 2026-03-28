@@ -39,6 +39,11 @@ __global__ void update_tke_average(real_t *tke_avg,
                                    unsigned int step,
                                    unsigned int init_step);
 
+__global__ void update_uy_average(const real_t *__restrict__ uy,
+                                  real_t *__restrict__ uy_avg,
+                                  unsigned int step,
+                                  unsigned int step_uy_avg_start);
+
 __global__ void inlet(
     pop_t __restrict__ *fr, real_t __restrict__ *rhor,
     pop_t __restrict__ *fb, real_t __restrict__ *rhob,
