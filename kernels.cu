@@ -6,13 +6,11 @@
 #include "collisionOperators.cuh"
 #include "utilities/constexprFor.cuh"
 #include "utilities/cudaConfig.cuh"
+#include "meanF/meanFields.cuh"
 
 //--------------------- Initialize fields --------------------------------------------------
 
-static constexpr const std::size_t THREADS_PER_BLOCK = 32 * 4 * 2;
-static constexpr const std::size_t BLOCKS_PER_MP = 1;
-
-__launch_bounds__(THREADS_PER_BLOCK, BLOCKS_PER_MP) __global__ void bubble(pop_t *fr, pop_t *fb, real_t *rhor, real_t *rhob)
+__global__ void bubble(pop_t *fr, pop_t *fb, real_t *rhor, real_t *rhob)
 {
     const label_t x = threadIdx.x + blockIdx.x * blockDim.x;
     const label_t y = threadIdx.y + blockIdx.y * blockDim.y;
@@ -28,8 +26,8 @@ __launch_bounds__(THREADS_PER_BLOCK, BLOCKS_PER_MP) __global__ void bubble(pop_t
     init_equilibrium(fr, fb, rhor, rhob, x, y, z);
 }
 
-__launch_bounds__(THREADS_PER_BLOCK, BLOCKS_PER_MP) __global__ void jetDensity(pop_t __restrict__ *fr, pop_t __restrict__ *fb,
-                                                                               real_t __restrict__ *rhor, real_t __restrict__ *rhob)
+__global__ void jetDensity(pop_t __restrict__ *fr, pop_t __restrict__ *fb,
+                           real_t __restrict__ *rhor, real_t __restrict__ *rhob)
 {
     const label_t x = threadIdx.x + blockIdx.x * blockDim.x;
     const label_t y = threadIdx.y + blockIdx.y * blockDim.y;
@@ -43,8 +41,8 @@ __launch_bounds__(THREADS_PER_BLOCK, BLOCKS_PER_MP) __global__ void jetDensity(p
     init_density_jet(fr, rhor, fb, rhob, x, y, z);
 }
 
-__launch_bounds__(THREADS_PER_BLOCK, BLOCKS_PER_MP) __global__ void Injet(pop_t __restrict__ *fr, pop_t __restrict__ *fb,
-                                                                          real_t __restrict__ *rhor, real_t __restrict__ *rhob)
+__global__ void Injet(pop_t __restrict__ *fr, pop_t __restrict__ *fb,
+                      real_t __restrict__ *rhor, real_t __restrict__ *rhob)
 {
     const label_t x = threadIdx.x + blockIdx.x * blockDim.x;
     const label_t z = threadIdx.y + blockIdx.y * blockDim.y;
@@ -59,11 +57,11 @@ __launch_bounds__(THREADS_PER_BLOCK, BLOCKS_PER_MP) __global__ void Injet(pop_t 
 
 //--------------- Main loop ----------------
 
-__launch_bounds__(THREADS_PER_BLOCK, BLOCKS_PER_MP) __global__ void Mfields(const pop_t __restrict__ *fr, real_t __restrict__ *rhor,
-                                                                            const pop_t __restrict__ *fb, real_t __restrict__ *rhob,
-                                                                            real_t __restrict__ *ux, real_t __restrict__ *uy, real_t __restrict__ *uz,
-                                                                            real_t __restrict__ *Pixx, real_t __restrict__ *Pixy, real_t __restrict__ *Piyy,
-                                                                            real_t __restrict__ *Piyz, real_t __restrict__ *Pizz, real_t __restrict__ *Pixz)
+__global__ void Mfields(const pop_t __restrict__ *fr, real_t __restrict__ *rhor,
+                        const pop_t __restrict__ *fb, real_t __restrict__ *rhob,
+                        real_t __restrict__ *ux, real_t __restrict__ *uy, real_t __restrict__ *uz,
+                        real_t __restrict__ *Pixx, real_t __restrict__ *Pixy, real_t __restrict__ *Piyy,
+                        real_t __restrict__ *Piyz, real_t __restrict__ *Pizz, real_t __restrict__ *Pixz)
 {
     const label_t x = threadIdx.x + blockIdx.x * blockDim.x;
     const label_t y = threadIdx.y + blockIdx.y * blockDim.y;
@@ -77,11 +75,11 @@ __launch_bounds__(THREADS_PER_BLOCK, BLOCKS_PER_MP) __global__ void Mfields(cons
     Mfields_calculation(fr, rhor, fb, rhob, ux, uy, uz, Pixx, Pixy, Piyy, Piyz, Pizz, Pixz, x, y, z);
 }
 
-__launch_bounds__(THREADS_PER_BLOCK, BLOCKS_PER_MP) __global__ void ColliStream(pop_t __restrict__ *fir, const real_t __restrict__ *rhor,
-                                                                                pop_t __restrict__ *fib, const real_t __restrict__ *rhob,
-                                                                                const real_t __restrict__ *ux, const real_t __restrict__ *uy, const real_t __restrict__ *uz,
-                                                                                const real_t __restrict__ *Pixx, const real_t __restrict__ *Pixy, const real_t __restrict__ *Piyy,
-                                                                                const real_t __restrict__ *Piyz, const real_t __restrict__ *Pizz, const real_t __restrict__ *Pixz)
+__global__ void ColliStream(pop_t __restrict__ *fir, const real_t __restrict__ *rhor,
+                            pop_t __restrict__ *fib, const real_t __restrict__ *rhob,
+                            const real_t __restrict__ *ux, const real_t __restrict__ *uy, const real_t __restrict__ *uz,
+                            const real_t __restrict__ *Pixx, const real_t __restrict__ *Pixy, const real_t __restrict__ *Piyy,
+                            const real_t __restrict__ *Piyz, const real_t __restrict__ *Pizz, const real_t __restrict__ *Pixz)
 {
     const label_t x = threadIdx.x + blockIdx.x * blockDim.x;
     const label_t y = threadIdx.y + blockIdx.y * blockDim.y;
@@ -186,6 +184,44 @@ __launch_bounds__(THREADS_PER_BLOCK, BLOCKS_PER_MP) __global__ void ColliStream(
         });
 }
 
+//----------------- Boundary conditions -------------------------
+
+__global__ void inlet(pop_t __restrict__ *fr, real_t __restrict__ *rhor,
+                      pop_t __restrict__ *fb, real_t __restrict__ *rhob,
+                      const real_t __restrict__ *Pixx, const real_t __restrict__ *Pixy, const real_t __restrict__ *Piyy,
+                      const real_t __restrict__ *Piyz, const real_t __restrict__ *Pizz, const real_t __restrict__ *Pixz)
+{
+
+    const label_t x = blockIdx.x * blockDim.x + threadIdx.x;
+    const label_t z = blockIdx.y * blockDim.y + threadIdx.y;
+
+    if (inlet_oulet_interior(x, z))
+    {
+        return;
+    }
+
+    inlet_calculation(fr, rhor, fb, rhob, Pixx, Pixy, Piyy, Piyz, Pizz, Pixz, x, z);
+}
+
+__global__ void neumann(pop_t __restrict__ *fir, real_t __restrict__ *rhor,
+                        pop_t __restrict__ *fib, real_t __restrict__ *rhob,
+                        real_t __restrict__ *ux, real_t __restrict__ *uy, real_t __restrict__ *uz,
+                        const real_t __restrict__ *Pixx, const real_t __restrict__ *Pixy, const real_t __restrict__ *Piyy,
+                        const real_t __restrict__ *Piyz, const real_t __restrict__ *Pizz, const real_t __restrict__ *Pixz)
+{
+
+    const label_t x = blockIdx.x * blockDim.x + threadIdx.x;
+    const label_t z = blockIdx.y * blockDim.y + threadIdx.y;
+
+    if (inlet_oulet_interior(x, z))
+    {
+        return;
+    }
+
+    neumann_calculation(fir, rhor, fib, rhob, ux, uy, uz, Pixx, Pixy, Piyy, Piyz, Pizz, Pixz, x, z);
+}
+
+//------------- Postprocessing -------------------------------
 
 __global__ void compute_total_tke(const real_t *__restrict__ ux,
                                   const real_t *__restrict__ uy,
@@ -196,19 +232,12 @@ __global__ void compute_total_tke(const real_t *__restrict__ ux,
     const label_t y = threadIdx.y + blockIdx.y * blockDim.y;
     const label_t z = threadIdx.z + blockIdx.z * blockDim.z;
 
-    if (x >= NX || y >= NY || z >= NZ)
+    if (interior(x, y, z))
     {
         return;
     }
 
-    const size_t id = idxDomain();
-
-    const real_t vx = ux[id];
-    const real_t vy = uy[id];
-    const real_t vz = uz[id];
-
-    const real_t ke = real_t(0.5) * (vx * vx + vy * vy + vz * vz);
-
+    const real_t ke = tke(x, y, z, ux, uy, uz);
     atomicAdd(tke_total, ke);
 }
 
@@ -235,51 +264,15 @@ __global__ void update_uy_average(const real_t *__restrict__ uy,
     const label_t y = threadIdx.y + blockIdx.y * blockDim.y;
     const label_t z = threadIdx.z + blockIdx.z * blockDim.z;
 
-    if (x >= NX || y >= NY || z >= NZ)
+    if (interior(x, y, z))
     {
         return;
     }
 
-    const size_t id = idxDomain();
+    const size_t id = idx(x, y, z);
 
     const unsigned int sample_count = step - step_uy_avg_start;
     const real_t count = static_cast<real_t>(sample_count);
 
     uy_avg[id] = (uy_avg[id] * count + uy[id]) / (count + static_cast<real_t>(1));
-}
-//----------------- Boundary conditions -------------------------
-
-__launch_bounds__(THREADS_PER_BLOCK, BLOCKS_PER_MP) __global__ void inlet(pop_t __restrict__ *fr, real_t __restrict__ *rhor,
-                                                                          pop_t __restrict__ *fb, real_t __restrict__ *rhob,
-                                                                          const real_t __restrict__ *Pixx, const real_t __restrict__ *Pixy, const real_t __restrict__ *Piyy,
-                                                                          const real_t __restrict__ *Piyz, const real_t __restrict__ *Pizz, const real_t __restrict__ *Pixz)
-{
-
-    const label_t x = blockIdx.x * blockDim.x + threadIdx.x;
-    const label_t z = blockIdx.y * blockDim.y + threadIdx.y;
-
-    if (inlet_oulet_interior(x, z))
-    {
-        return;
-    }
-
-    inlet_calculation(fr, rhor, fb, rhob, Pixx, Pixy, Piyy, Piyz, Pizz, Pixz, x, z);
-}
-
-__launch_bounds__(THREADS_PER_BLOCK, BLOCKS_PER_MP) __global__ void neumann(pop_t __restrict__ *fir, real_t __restrict__ *rhor,
-                                                                            pop_t __restrict__ *fib, real_t __restrict__ *rhob,
-                                                                            real_t __restrict__ *ux, real_t __restrict__ *uy, real_t __restrict__ *uz,
-                                                                            const real_t __restrict__ *Pixx, const real_t __restrict__ *Pixy, const real_t __restrict__ *Piyy,
-                                                                            const real_t __restrict__ *Piyz, const real_t __restrict__ *Pizz, const real_t __restrict__ *Pixz)
-{
-
-    const label_t x = blockIdx.x * blockDim.x + threadIdx.x;
-    const label_t z = blockIdx.y * blockDim.y + threadIdx.y;
-
-    if (inlet_oulet_interior(x, z))
-    {
-        return;
-    }
-
-    neumann_calculation(fir, rhor, fib, rhob, ux, uy, uz, Pixx, Pixy, Piyy, Piyz, Pizz, Pixz, x, z);
 }

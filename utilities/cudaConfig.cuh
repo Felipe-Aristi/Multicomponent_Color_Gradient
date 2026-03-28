@@ -2,7 +2,11 @@
 #define CUDACONFIG_CUH
 
 #include <cuda_runtime.h>
+#include <iostream>
+#include <iomanip>
+
 #include "../constants.cuh"
+#include "cudaUtilities.cuh"
 
 __host__ __device__ __forceinline__ int ceil_div(size_t a, size_t b)
 {
@@ -44,15 +48,22 @@ __host__ __device__ __forceinline__ dim3 grid2D_xz(const CudaConfig &cfg)
         1);
 }
 
-
-__device__ __forceinline__
-size_t idxDomain()
+// Gpu and mesh settings
+inline CudaConfig print_device_and_make_config(const int deviceID)
 {
-    const size_t x = (size_t)blockIdx.x * (size_t)blockDim.x + (size_t)threadIdx.x;
-    const size_t y = (size_t)blockIdx.y * (size_t)blockDim.y + (size_t)threadIdx.y;
-    const size_t z = (size_t)blockIdx.z * (size_t)blockDim.z + (size_t)threadIdx.z;
+    cudaDeviceProp prop{};
+    CUDA_CHECK(cudaGetDeviceProperties(&prop, deviceID));
 
-    return x + (size_t)NX * (y + (size_t)NY * z);
+    std::cout << "GPU: " << prop.name << "\n";
+    std::cout << "Compute Capability: "
+              << prop.major << "." << prop.minor << "\n";
+
+    CudaConfig cfg = make_cudaConfig();
+
+    std::cout << "block=(" << cfg.block.x << "," << cfg.block.y << "," << cfg.block.z << ")\n";
+    std::cout << "grid =(" << cfg.grid.x << "," << cfg.grid.y << "," << cfg.grid.z << ")\n";
+
+    return cfg;
 }
 
 #endif

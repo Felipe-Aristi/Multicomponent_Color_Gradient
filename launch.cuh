@@ -72,7 +72,6 @@ inline void launch_update_uy_average(const CudaConfig &cfg,
     CUDA_CHECK(cudaGetLastError());
 }
 
-
 inline void launch_collistream(const CudaConfig &cfg, const LbmDevice &d, cudaStream_t stream = 0)
 {
     ColliStream<<<cfg.grid, cfg.block, 0, stream>>>(
