@@ -1,6 +1,7 @@
 #ifndef SAVE_DATA_CUH
 #define SAVE_DATA_CUH
 
+#include <cmath>
 #include <cstdint>
 #include <cstring>
 #include <fstream>
@@ -20,7 +21,14 @@
 // Folder: <cwd>/LBM_bubble/vti
 inline std::filesystem::path default_out_dir()
 {
-    return std::filesystem::current_path() / "JET_VTK" / "vti";
+    std::ostringstream folder_name;
+    folder_name << "Re"
+                << static_cast<int>(std::round(Re))
+                << "_We"
+                << static_cast<int>(std::round(We))
+                << "_vtifiles";
+
+    return std::filesystem::current_path() / "JET_VTK" / folder_name.str();
 }
 
 inline const char *vtk_real_type()

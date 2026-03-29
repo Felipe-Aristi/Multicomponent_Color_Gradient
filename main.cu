@@ -81,7 +81,7 @@ int main()
 
             process_tke_sample(mf, step);
 
-            // write_vti_step_device(step, d, h);
+            write_vti_step_device(step, d, h);
         }
     }
 

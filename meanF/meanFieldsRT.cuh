@@ -1,11 +1,16 @@
 #ifndef MEANFIELDSRT_CUH
 #define MEANFIELDSRT_CUH
 
+#include <cmath>
 #include <cstdio>
 #include <cstdlib>
+#include <filesystem>
+#include <iostream>
+#include <sstream>
 #include <string>
 
 #include "../utilities/cudaUtilities.cuh"
+#include "../constants.cuh"
 #include "memoryMeanFields.cuh"
 
 struct MeanFieldsFiles
@@ -22,14 +27,56 @@ struct MeanFieldsRuntime
     MeanFieldsHost host{};
     MeanFieldsState state{};
     MeanFieldsFiles files{};
+
+    std::string case_dir{};
+    std::string mean_dir{};
+    std::string vti_dir{};
 };
 
-inline bool open_mean_fields_files(MeanFieldsFiles &f)
+// ------------- Create directory ---------------
+inline std::string make_case_folder_name()
 {
-    const std::string path_uy_avg = "./JET_VTK/uy_avg.bin";
-    const std::string path_total = "./JET_VTK/tke_total.bin";
-    const std::string path_avg = "./JET_VTK/tke_avg.bin";
-    const std::string path_diff = "./JET_VTK/tke_diff.bin";
+    std::ostringstream oss;
+    oss << "./JET_VTK/"
+        << "Re" << static_cast<int>(std::round(Re))
+        << "_We" << static_cast<int>(std::round(We));
+    return oss.str();
+}
+
+inline bool ensure_case_directories(MeanFieldsRuntime &mf)
+{
+    mf.case_dir = make_case_folder_name();
+    mf.mean_dir = mf.case_dir + "/mean_profiles";
+    mf.vti_dir = mf.case_dir + "/vti_data";
+
+    std::error_code ec;
+
+    std::filesystem::create_directories(mf.mean_dir, ec);
+    if (ec)
+    {
+        std::fprintf(stderr, "Failed to create mean_profiles directory: %s\n", mf.mean_dir.c_str());
+        return false;
+    }
+
+    ec.clear();
+    std::filesystem::create_directories(mf.vti_dir, ec);
+    if (ec)
+    {
+        std::fprintf(stderr, "Failed to create vti_data directory: %s\n", mf.vti_dir.c_str());
+        return false;
+    }
+
+    return true;
+}
+
+// ---------------------------------------------------
+
+inline bool open_mean_fields_files(MeanFieldsFiles &f, const std::string &mean_dir)
+{
+    const std::string path_uy_avg = mean_dir + "/uy_avg.bin";
+    const std::string path_total = mean_dir + "/tke_total.bin";
+    const std::string path_avg = mean_dir + "/tke_avg.bin";
+    const std::string path_diff = mean_dir + "/tke_diff.bin";
 
     f.tke_total = std::fopen(path_total.c_str(), "wb");
     f.tke_avg = std::fopen(path_avg.c_str(), "wb");
@@ -39,6 +86,7 @@ inline bool open_mean_fields_files(MeanFieldsFiles &f)
     if (f.tke_total == nullptr || f.tke_avg == nullptr ||
         f.tke_diff == nullptr || f.uy_avg == nullptr)
     {
+        std::fprintf(stderr, "Error opening one or more files in: %s\n", mean_dir.c_str());
         return false;
     }
 
@@ -68,7 +116,14 @@ inline bool initialize_mean_fields_runtime(const int deviceID,
     mf.host = allocate_mean_fields_host();
     mf.state = MeanFieldsState{};
 
-    if (!open_mean_fields_files(mf.files))
+    if (!ensure_case_directories(mf))
+    {
+        free_mean_fields_device(mf.device);
+        free_mean_fields_host(mf.host);
+        return false;
+    }
+
+    if (!open_mean_fields_files(mf.files, mf.mean_dir))
     {
         std::fprintf(stderr, "Error opening one or more mean-field output files.\n");
 
