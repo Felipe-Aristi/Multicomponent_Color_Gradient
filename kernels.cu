@@ -129,9 +129,14 @@ __global__ void ColliStream(pop_t __restrict__ *fir, const real_t __restrict__ *
 
                 const real_t gi = Omega1;
 
-                const int xn = static_cast<int>(x) + D3Q27::cx<i>();
+                // const int xn = static_cast<int>(x) + D3Q27::cx<i>();
+                // const int zn = static_cast<int>(z) + D3Q27::cz<i>();
+
+                // // periodic boundary condition
+                const int xn = wrapx(static_cast<int>(x) + D3Q27::cx<i>());
+                const int zn = wrapz(static_cast<int>(z) + D3Q27::cz<i>());
+
                 const int yn = static_cast<int>(y) + D3Q27::cy<i>();
-                const int zn = static_cast<int>(z) + D3Q27::cz<i>();
 
                 const label_t idn = idx(static_cast<label_t>(xn),
                                         static_cast<label_t>(yn),
@@ -171,9 +176,14 @@ __global__ void ColliStream(pop_t __restrict__ *fir, const real_t __restrict__ *
 
             const real_t Deltai = recolorDelta<i>(rr, rb, Fxr, Fyr, Fzr, absforcer);
 
-            const int xn = static_cast<int>(x) + D3Q27::cx<i>();
+            // const int xn = static_cast<int>(x) + D3Q27::cx<i>();
+            // const int zn = static_cast<int>(z) + D3Q27::cz<i>();
+
+            // periodic boundary condition
+            const int xn = wrapx(static_cast<int>(x) + D3Q27::cx<i>());
+            const int zn = wrapz(static_cast<int>(z) + D3Q27::cz<i>());
+
             const int yn = static_cast<int>(y) + D3Q27::cy<i>();
-            const int zn = static_cast<int>(z) + D3Q27::cz<i>();
 
             const label_t idn = idx(static_cast<label_t>(xn),
                                     static_cast<label_t>(yn),
