@@ -119,10 +119,10 @@ __device__ __forceinline__ void neumann_calculation(pop_t __restrict__ *fir, rea
     //    CFL-like clipping: 0 <= uc <= jet_velocity
     // ---------------------------------------------
     const real_t uc_raw = fminf(fmaxf(uy[idF], static_cast<real_t>(0.0)), jet_velocity);
-    const real_t uc = static_cast<real_t>(1.0) * jet_velocity;
+    const real_t uc = jet_velocity;
 
-    const real_t rrB_new = fmaxf(convectiveB(rrB_old, rrF, uc), eps);
-    const real_t rbB_new = fmaxf(convectiveB(rbB_old, rbF, uc), eps);
+    const real_t rrB_new = convectiveB(rrB_old, rrF, uc);
+    const real_t rbB_new = convectiveB(rbB_old, rbF, uc);
 
     real_t jxB_new = convectiveB(jxB_old, jxF, uc);
     real_t jyB_new = convectiveB(jyB_old, jyF, uc);
@@ -134,11 +134,11 @@ __device__ __forceinline__ void neumann_calculation(pop_t __restrict__ *fir, rea
     // -----------------------------------------
     // 4) Rebuild ghost macroscopic variables
     // -----------------------------------------
-    const real_t rhoT = fmaxf(rrB_new + rbB_new, eps);
+    const real_t rhoT = rrB_new + rbB_new;
     const real_t invRhoT = static_cast<real_t>(1.0) / rhoT;
 
     const real_t uxB = jxB_new * invRhoT;
-    const real_t uyB = jyB_new * invRhoT;
+    const real_t uyB = static_cast<real_t>(0.005);
     const real_t uzB = jzB_new * invRhoT;
 
     rhor[idB] = rrB_new;

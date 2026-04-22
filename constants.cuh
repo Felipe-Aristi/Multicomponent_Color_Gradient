@@ -5,13 +5,13 @@
 #include "utilities/types.cuh"
 
 // Steps
-inline constexpr int NSTEP = 3000000;
+inline constexpr int NSTEP = 200000;
 inline constexpr int NOUTPUT = 2000;
 
 // Grid
-inline constexpr label_t NX = static_cast<label_t>(64);
-inline constexpr label_t NZ = static_cast<label_t>(64);
-inline constexpr label_t NY = static_cast<label_t>(256);
+inline constexpr label_t NX = static_cast<label_t>(128);
+inline constexpr label_t NZ = static_cast<label_t>(128);
+inline constexpr label_t NY = static_cast<label_t>(400);
 inline constexpr label_t sponge_cells = static_cast<label_t>(10);
 
 inline constexpr label_t Ncells = NX * NY * NZ;
@@ -55,10 +55,10 @@ inline constexpr real_t omegar = static_cast<real_t>(1) / taur;
 inline constexpr real_t omegab = static_cast<real_t>(1) / taub;
 
 // Weber number
-//inline constexpr std::size_t WeberInteger = WEBER;
-inline constexpr real_t We = static_cast<real_t>(100);
+// inline constexpr std::size_t WeberInteger = WEBER;
+inline constexpr real_t We = static_cast<real_t>(10);
 
-inline constexpr real_t sigma = static_cast<real_t>((rhob0 * jet_velocity * jet_velocity * static_cast<real_t>(2.0) * jet_radius) / We); 
+inline constexpr real_t sigma = static_cast<real_t>((rhob0 * jet_velocity * jet_velocity * static_cast<real_t>(2.0) * jet_radius) / We);
 inline constexpr real_t beta_recolor = static_cast<real_t>(0.80);
 
 inline constexpr real_t sigma_over_4cs4 = sigma / (static_cast<real_t>(4) * cs4);
