@@ -25,7 +25,7 @@ __device__ __forceinline__ real_t feq(const real_t rho,
 
     const real_t cu = ux * cx + uy * cy + uz * cz;
     const real_t usq = ux * ux + uy * uy + uz * uz;
-    const real_t A2eq = (cu / cs2) - (usq / (real_t(2.0) * cs2)) + (cu * cu) / (real_t(2.0) * cs4);
+    const real_t A2eq = (cu / cs2) - (usq * inv_2cs2) + (cu * cu) * inv_2cs4;
 
     return wi * rho * (real_t(1.0) + A2eq);
 }
@@ -47,34 +47,12 @@ __device__ __forceinline__ real_t fneqr(const real_t Pixx,
 
     constexpr real_t wi = D3Q27::w<I>();
 
-    const real_t a2neq = wi * (Pixx * Hxx + real_t(2.0) * Pixy * Hxy + Piyy * Hyy + real_t(2.0) * Piyz * Hyz + Pizz * Hzz + real_t(2.0) * Pixz * Hxz) / (real_t(2.0) * cs4);
+    const real_t a2neq = wi * (Pixx * Hxx + real_t(2.0) * Pixy * Hxy + Piyy * Hyy + real_t(2.0) * Piyz * Hyz + Pizz * Hzz + real_t(2.0) * Pixz * Hxz) * inv_2cs4;
 
     return a2neq;
 }
 
-template <label_t I>
-__device__ __forceinline__ void velocity_alt(const real_t gi,
-                                             real_t &jx,
-                                             real_t &jy,
-                                             real_t &jz) noexcept
-{
-    if constexpr (D3Q27::cx<I>() != 0)
-    {
-        jx += gi * static_cast<real_t>(D3Q27::cx<I>());
-    }
-
-    if constexpr (D3Q27::cy<I>() != 0)
-    {
-        jy += gi * static_cast<real_t>(D3Q27::cy<I>());
-    }
-
-    if constexpr (D3Q27::cz<I>() != 0)
-    {
-        jz += gi * static_cast<real_t>(D3Q27::cz<I>());
-    }
-}
-
-//--------------------
+//------------- Macroscopic fields calculation ------------
 
 __device__ __forceinline__ void Mfields_calculation(const pop_t __restrict__ *fr, real_t __restrict__ *rhor,
                                                     const pop_t __restrict__ *fb, real_t __restrict__ *rhob,

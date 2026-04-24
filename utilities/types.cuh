@@ -23,17 +23,4 @@ __host__ __device__ [[nodiscard]] __forceinline__ real_t load_pop(const pop_t h)
     return __half2float(h) * FP16S_DOWN;
 }
 
-// Shifted populations
-// template <label_t I>
-// __host__ __device__ __forceinline__ real_t shift_pop(const real_t f_raw) noexcept
-// {
-//     return f_raw - D3Q27::w<I>();
-// }
-
-// template <label_t I>
-// __host__ __device__ __forceinline__ real_t unshift_pop(const real_t f_shift) noexcept
-// {
-//     return f_shift + D3Q27::w<I>();
-// }
-
 #endif

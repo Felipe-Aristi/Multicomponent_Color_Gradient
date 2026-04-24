@@ -90,8 +90,6 @@ __device__ __forceinline__ void neumann_calculation(pop_t __restrict__ *fir, rea
     const label_t idB = idx(x, yB, z);
     const label_t idF = idx(x, yF, z);
 
-    constexpr real_t eps = static_cast<real_t>(1.0e-8);
-
     // -----------------------------
     // 1) Old ghost state at outlet
     // -----------------------------
@@ -118,7 +116,7 @@ __device__ __forceinline__ void neumann_calculation(pop_t __restrict__ *fir, rea
     // 3) Explicit convective update on ghost state
     //    CFL-like clipping: 0 <= uc <= jet_velocity
     // ---------------------------------------------
-    const real_t uc_raw = fminf(fmaxf(uy[idF], static_cast<real_t>(0.0)), jet_velocity);
+    // const real_t uc_raw = fminf(fmaxf(uy[idF], static_cast<real_t>(0.0)), jet_velocity);
     const real_t uc = jet_velocity;
 
     const real_t rrB_new = convectiveB(rrB_old, rrF, uc);
@@ -129,7 +127,7 @@ __device__ __forceinline__ void neumann_calculation(pop_t __restrict__ *fir, rea
     real_t jzB_new = convectiveB(jzB_old, jzF, uc);
 
     // Optional but recommended: suppress backflow at the outlet ghost plane
-    jyB_new = fmaxf(jyB_new, static_cast<real_t>(0.0));
+    // jyB_new = fmaxf(jyB_new, static_cast<real_t>(0.0));
 
     // -----------------------------------------
     // 4) Rebuild ghost macroscopic variables

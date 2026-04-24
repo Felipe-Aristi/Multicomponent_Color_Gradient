@@ -95,7 +95,7 @@ __global__ void ColliStream(pop_t __restrict__ *fir, const real_t __restrict__ *
     const real_t rr = rhor[id];
     const real_t rb = rhob[id];
     const real_t rT = rr + rb;
-    const real_t invrT = real_t(1 / rT);
+    const real_t invrT = static_cast<real_t>(1) / static_cast<real_t>(rT);
 
     const real_t aR = real_t(rr * invrT);
     const real_t aB = real_t(rb * invrT);

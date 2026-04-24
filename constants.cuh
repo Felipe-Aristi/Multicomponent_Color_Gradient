@@ -37,9 +37,12 @@ inline constexpr real_t bubble_y0 = static_cast<real_t>(NY - 1) / static_cast<re
 inline constexpr real_t bubble_z0 = static_cast<real_t>(NZ - 1) / static_cast<real_t>(2);
 inline constexpr real_t pi = static_cast<real_t>(3.141592653589793);
 
+// SOme useful constants
 inline constexpr real_t cs2 = static_cast<real_t>(1.0 / 3.0);
 inline constexpr real_t inv_cs2 = static_cast<real_t>(1) / cs2;
 inline constexpr real_t cs4 = cs2 * cs2;
+inline constexpr real_t inv_2cs2 = static_cast<real_t>(1) / (static_cast<real_t>(2) * cs2);
+inline constexpr real_t inv_2cs4 = static_cast<real_t>(1) / (static_cast<real_t>(2) * cs4);
 
 inline constexpr real_t rhor0 = static_cast<real_t>(1);
 inline constexpr real_t rhob0 = static_cast<real_t>(0.95);
@@ -56,7 +59,7 @@ inline constexpr real_t omegab = static_cast<real_t>(1) / taub;
 
 // Weber number
 // inline constexpr std::size_t WeberInteger = WEBER;
-inline constexpr real_t We = static_cast<real_t>(10);
+inline constexpr real_t We = static_cast<real_t>(2500);
 
 inline constexpr real_t sigma = static_cast<real_t>((rhob0 * jet_velocity * jet_velocity * static_cast<real_t>(2.0) * jet_radius) / We);
 inline constexpr real_t beta_recolor = static_cast<real_t>(0.80);
