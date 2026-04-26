@@ -99,7 +99,7 @@ __device__ __forceinline__ void preOmega2(const real_t __restrict__ *rho_self,
 
     force(rho_self, rho_other, id, Fx, Fy, Fz);
 
-    real_t tau_eff = tau_interface(rho_self[id], tau_self0, rho_other[id], tau_other0);
+    real_t tau_eff = taub; // tau_interface(rho_self[id], tau_self0, rho_other[id], tau_other0);
     A = A_calculation(tau_eff);
     absF = absforce_calcul(Fx, Fy, Fz);
 }

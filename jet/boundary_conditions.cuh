@@ -14,7 +14,9 @@
 #include "../stencil.cuh"
 #include "../stencil_ct.cuh"
 
-// inlet boundary condition
+// Inlet boundary condition: y = 0 is the ghost plane and y = 1 is the
+// first fluid plane. The circular jet injects blue fluid; the rest of the
+// inlet keeps the red ambient state.
 
 __device__ __forceinline__ void inlet_calculation(pop_t __restrict__ *fr, real_t __restrict__ *rhor,
                                                   pop_t __restrict__ *fb, real_t __restrict__ *rhob,
@@ -60,21 +62,24 @@ __device__ __forceinline__ void inlet_calculation(pop_t __restrict__ *fr, real_t
     constexpr_for<0, Q>(
         [&] __device__(auto I)
         {
-        constexpr label_t i = decltype(I)::value;
+            constexpr label_t i = decltype(I)::value;
 
-       if constexpr (D3Q27::cy<i>() == 1)
-        {
-            const int fluid_nodei = static_cast<int>(idF) + D3Q27::offset_xz<i>();
-            const label_t fluid_node = static_cast<label_t>(fluid_nodei);
+            if constexpr (D3Q27::cy<i>() == 1)
+            {
+                // Populations with cy = +1 stream from the inlet ghost plane
+                // into the first fluid plane.
+                const int fluid_nodei = static_cast<int>(idF) + D3Q27::offset_xz<i>();
+                const label_t fluid_node = static_cast<label_t>(fluid_nodei);
 
-            const real_t gieq = feq<i>(rT, uxb, uyb, uzb);
-            const real_t gineqr = fneqr<i>(pixx, pixy, piyy, piyz, pizz, pixz);
+                const real_t gieq = geq<i>(rT, uxb, uyb, uzb);
+                const real_t gineqr = fneqr<i>(pixx, pixy, piyy, piyz, pizz, pixz);
 
-            const real_t gi = gieq + oms * gineqr;
+                const real_t gi = gieq + oms * gineqr;
 
-            fr[fidx(fluid_node, i)] = save_pop(aR * gi);
-            fb[fidx(fluid_node, i)] = save_pop(aB * gi);
-        } });
+                fr[fidx(fluid_node, i)] = save_pop(split_shifted_pop<i>(aR, gi, real_t(0.0)));
+                fb[fidx(fluid_node, i)] = save_pop(split_shifted_pop<i>(aB, gi, real_t(0.0)));
+            }
+        });
 }
 
 __device__ __forceinline__ void neumann_calculation(pop_t __restrict__ *fir, real_t __restrict__ *rhor,
@@ -90,57 +95,20 @@ __device__ __forceinline__ void neumann_calculation(pop_t __restrict__ *fir, rea
     const label_t idB = idx(x, yB, z);
     const label_t idF = idx(x, yF, z);
 
-    // -----------------------------
-    // 1) Old ghost state at outlet
-    // -----------------------------
-    const real_t rrB_old = rhor[idB];
-    const real_t rbB_old = rhob[idB];
-    const real_t rhoB_old = rrB_old + rbB_old;
-
-    const real_t jxB_old = rhoB_old * ux[idB];
-    const real_t jyB_old = rhoB_old * uy[idB];
-    const real_t jzB_old = rhoB_old * uz[idB];
-
-    // ------------------------------------
-    // 2) Current state on last fluid plane
-    // ------------------------------------
-    const real_t rrF = rhor[idF];
-    const real_t rbF = rhob[idF];
-    const real_t rhoF = rrF + rbF;
-
-    const real_t jxF = rhoF * ux[idF];
-    const real_t jyF = rhoF * uy[idF];
-    const real_t jzF = rhoF * uz[idF];
-
-    // ---------------------------------------------
-    // 3) Explicit convective update on ghost state
-    //    CFL-like clipping: 0 <= uc <= jet_velocity
-    // ---------------------------------------------
-    // const real_t uc_raw = fminf(fmaxf(uy[idF], static_cast<real_t>(0.0)), jet_velocity);
-    const real_t uc = jet_velocity;
-
-    const real_t rrB_new = convectiveB(rrB_old, rrF, uc);
-    const real_t rbB_new = convectiveB(rbB_old, rbF, uc);
-
-    real_t jxB_new = convectiveB(jxB_old, jxF, uc);
-    real_t jyB_new = convectiveB(jyB_old, jyF, uc);
-    real_t jzB_new = convectiveB(jzB_old, jzF, uc);
-
-    // Optional but recommended: suppress backflow at the outlet ghost plane
-    // jyB_new = fmaxf(jyB_new, static_cast<real_t>(0.0));
-
-    // -----------------------------------------
-    // 4) Rebuild ghost macroscopic variables
-    // -----------------------------------------
-    const real_t rhoT = rrB_new + rbB_new;
+    // Pure first-order Neumann outlet: copy the last fluid plane to the
+    // outlet ghost plane, so d(phi)/dy = 0 for both fluid densities and
+    // velocity.
+    const real_t rrB = rhor[idF];
+    const real_t rbB = rhob[idF];
+    const real_t rhoT = rrB + rbB;
     const real_t invRhoT = static_cast<real_t>(1.0) / rhoT;
 
-    const real_t uxB = jxB_new * invRhoT;
-    const real_t uyB = static_cast<real_t>(0.005);
-    const real_t uzB = jzB_new * invRhoT;
+    const real_t uxB = ux[idF];
+    const real_t uyB = uy[idF];
+    const real_t uzB = uz[idF];
 
-    rhor[idB] = rrB_new;
-    rhob[idB] = rbB_new;
+    rhor[idB] = rrB;
+    rhob[idB] = rbB;
     ux[idB] = uxB;
     uy[idB] = uyB;
     uz[idB] = uzB;
@@ -152,8 +120,8 @@ __device__ __forceinline__ void neumann_calculation(pop_t __restrict__ *fir, rea
     const real_t pizz = Pizz[idF];
     const real_t pixz = Pixz[idF];
 
-    const real_t aR = rrB_new * invRhoT;
-    const real_t aB = rbB_new * invRhoT;
+    const real_t aR = rrB * invRhoT;
+    const real_t aB = rbB * invRhoT;
 
     const real_t omega = omegab; // omega_sponge(yF)
     const real_t oms = static_cast<real_t>(1.0) - omega;
@@ -165,15 +133,17 @@ __device__ __forceinline__ void neumann_calculation(pop_t __restrict__ *fir, rea
 
             if constexpr (D3Q27::cy<i>() == -1)
             {
+                // Populations with cy = -1 stream from the outlet ghost plane
+                // back into the last fluid plane.
                 const int fluid_nodei = static_cast<int>(idF) + D3Q27::offset_xz<i>();
                 const label_t fluid_node = static_cast<label_t>(fluid_nodei);
 
-                const real_t gieq = feq<i>(rhoT, uxB, uyB, uzB);
+                const real_t gieq = geq<i>(rhoT, uxB, uyB, uzB);
                 const real_t gineqr = fneqr<i>(pixx, pixy, piyy, piyz, pizz, pixz);
                 const real_t gi = gieq + oms * gineqr;
 
-                fir[fidx(fluid_node, i)] = save_pop(aR * gi);
-                fib[fidx(fluid_node, i)] = save_pop(aB * gi);
+                fir[fidx(fluid_node, i)] = save_pop(split_shifted_pop<i>(aR, gi, real_t(0.0)));
+                fib[fidx(fluid_node, i)] = save_pop(split_shifted_pop<i>(aB, gi, real_t(0.0)));
             }
         });
 }

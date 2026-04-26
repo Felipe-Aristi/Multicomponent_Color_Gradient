@@ -55,7 +55,7 @@ int main()
         launch_inlet_bc(cfg, d);
         launch_neumann_bc(cfg, d);
 
-        if (update_mlups_stats(evStart, evStop, step, perf, 10))
+        if (update_mlups_stats(evStart, evStop, step, perf, 100))
         {
             print_mlups_stats(perf, step);
         }
