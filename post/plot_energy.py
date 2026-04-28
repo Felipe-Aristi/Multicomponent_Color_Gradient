@@ -1,116 +1,95 @@
-from prettyPlot import pretty_plot
-from matplotlib.lines import Line2D
-from exportAndCrop import export_and_crop 
-from matplotlib.ticker import FixedLocator
+from __future__ import annotations
+
+import argparse
+from pathlib import Path
+
 import numpy as np
-import os
+from matplotlib import pyplot as plt
 
-# Diretório onde o script está
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-
-print(BASE_DIR)
-
-# Caminho da pasta raiz do projeto (um nível acima)
-PROJECT_ROOT = os.path.abspath(os.path.join(BASE_DIR, ".."))
-
-print(PROJECT_ROOT)
-
-# Apple palette colors
-green = '#61BB46'
-red = '#E03A3E'
-blue = '#009DDC'
-purple = '#963D97'
-yellow = '#FDB827'
-orange = '#F5821F'
-color =[green, red, blue, purple, yellow, orange]
+from case_config import add_case_args, load_case_config
+from exportAndCrop import export_and_crop
+from prettyPlot import pretty_plot
 
 
+BLUE = "#009DDC"
 
-def totalKineticEnergy(property, field, inputPath, outputPath):
 
-    D = 16
-    U_MAX = 0.05
-    interval = 2000
-    # energy = f"{property}.bin"
-    energy = f"tke_{field}.bin"
-    tke = np.fromfile(os.path.join(inputPath, energy), dtype=np.float32)
+def total_kinetic_energy(field: str,
+                         case_dir: Path | None = None,
+                         output_dir: Path | None = None) -> None:
+    cfg = load_case_config(case_dir, output_dir)
+    cfg.profiles_dir.mkdir(parents=True, exist_ok=True)
+
+    input_path = cfg.mean_dir / f"tke_{field}.bin"
+    tke = np.fromfile(input_path, dtype=np.float32)
+    if tke.size == 0:
+        raise ValueError(f"No samples found in {input_path}")
+
     if field != "diff":
-        tke = tke / 9*(U_MAX**2)
-        minYLim = np.min(tke)*0.95
-        maxYLim = np.max(tke)*1.05
+        values = tke / (9.0 * cfg.jet_velocity * cfg.jet_velocity)
+        min_ylim = float(np.min(values) * 0.95)
+        max_ylim = float(np.max(values) * 1.05)
+        if abs(max_ylim - min_ylim) < 1.0e-20:
+            max_ylim = min_ylim + 1.0e-12
     else:
-        minYLim = 1e-6
-        maxYLim = 1e-2
-    t_starmax = (len(tke)*interval)*U_MAX / D
-    t_star = np.linspace(0,t_starmax, len(tke))
-    
+        values = tke
+        positive = values[values > 0.0]
+        min_ylim = float(max(np.min(positive) * 0.5, 1.0e-10)) if positive.size else 1.0e-10
+        max_ylim = float(max(np.max(values) * 2.0, 1.0e-8))
 
+    t_star = np.arange(values.size, dtype=float) * cfg.noutput * cfg.jet_velocity / cfg.diameter
 
-    if property == "kinetic_energy" and field != "diff":
-        property_label = r"$ E_{K}^{*}$"
-        maxLim = t_starmax
-        minLim = 0
-    else:
-        property_label = r"$ E_{K}^{*}$"
-        minLim = t_starmax/2
-        maxLim = t_starmax
-    
+    paper_width = 612
+    margin_points = 54
 
-    # Margins size according to the overleaf article format
-    PaperWidth  = 612     # points
-    MarginPoints = 54     # points
-
-    fig, ax, cbar = pretty_plot(
-        xLim = (minLim, maxLim), yLim = (minYLim, maxYLim), cLim=(-1, 1),
-        plotAspectRatio=(1,1,1),
-        xLabel=r"$t^{*}$", yLabel = property_label,
-        yScientificNotation = True, yTickFormat= 2,
-        nxTicks = 5, nyTicks=9, 
+    fig, ax, _ = pretty_plot(
+        xLim=(0, float(t_star[-1]) if t_star.size > 1 else 1.0),
+        yLim=(min_ylim, max_ylim),
+        cLim=(-1, 1),
+        plotAspectRatio=(1, 1, 1),
+        xLabel=r"$t^*$",
+        yLabel=r"$E_K^*$" if field != "diff" else r"$\Delta E_K^*$",
+        yScientificNotation=True,
+        yTickFormat=2,
+        nxTicks=5,
+        nyTicks=9,
         useColorBar=False,
-        paperPoints=PaperWidth,
-        marginPoints=MarginPoints,
+        paperPoints=paper_width,
+        marginPoints=margin_points,
         textWidth=1,
         boxMarginScale=0.085,
         yLabelAngle=0,
         useGrid=True,
-        fontSize = 14,
-        dpi=300
+        fontSize=14,
+        dpi=300,
     )
-
 
     ax.yaxis.set_label_coords(-0.125, 0.5)
-
-
-    # ------------------------------- Plot for UX_CY ----------------------------------------------
-    # print(len(t_star))
-    ax.plot(t_star, tke,
-            ls = '-' ,lw = 3, color = blue, markersize=5, label = "256")
+    ax.plot(t_star, values, ls="-", lw=3, color=BLUE, markersize=5, label=f"Re {cfg.re}, We {cfg.we}")
     if field == "diff":
-        ax.set_yscale('log')
-
+        ax.set_yscale("log")
 
     ax.grid(True)
-    ax.legend(loc = 'lower right', title = "Grid", title_fontsize = 18, fontsize= 18) 
-    # plt.show()
-    export_and_crop(fig, f"{outputPath}/{property}_.png")
+    ax.legend(loc="best", fontsize=12)
+
+    output_path = cfg.profiles_dir / f"tke_{field}.png"
+    export_and_crop(fig, str(output_path))
+    plt.close(fig)
+    print(f"Energy plot written to {output_path}")
+
+
+def main() -> None:
+    parser = argparse.ArgumentParser(description="Plot TKE diagnostic histories.")
+    add_case_args(parser)
+    parser.add_argument("field", choices=["total", "avg", "diff"])
+    args = parser.parse_args()
+
+    total_kinetic_energy(
+        field=args.field,
+        case_dir=Path(args.case_dir) if args.case_dir else None,
+        output_dir=Path(args.output_dir) if args.output_dir else None,
+    )
+
 
 if __name__ == "__main__":
-    import sys
-
-    if len(sys.argv) < 3:
-        print("Uso: python3 plot_energy.py <property (kinetic_energy)> <field (total/avg/diff)>")
-        sys.exit(1)
-
-    property = sys.argv[1]
-    field = sys.argv[2]
-
-    inputPath = os.path.join(PROJECT_ROOT, "JET_VTK")
-    outputPath = os.path.join("resultsJET")
-    os.makedirs(outputPath, exist_ok=True)
-
-    totalKineticEnergy(
-        property = property,
-        field = field,
-        inputPath = inputPath,
-        outputPath = outputPath,
-    )
+    main()

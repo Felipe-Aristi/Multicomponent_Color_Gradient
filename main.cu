@@ -48,7 +48,8 @@ int main()
 
         // if (mf.state.start_uy_average)
         // {
-        //     launch_update_uy_average(cfg, d, mf.device.uy_avg, step, mf.state.step_uy_avg_start);
+        //     launch_accumulate_radial_moments(cfg, d, mf.device);
+        //     ++mf.state.uy_avg_samples;
         // }
 
         launch_collistream(cfg, d);
@@ -81,19 +82,21 @@ int main()
 
             // process_tke_sample(mf, step);
 
-            write_vti_step_device(step, d, h);
+            // if (mf.state.start_uy_average && mf.state.uy_avg_samples > 0)
+            // {
+            //     write_radial_profile_outputs(mf);
+            // }
+
+            if constexpr (write_vti_output)
+            {
+                write_vti_step_device(step, d, h);
+            }
         }
     }
 
     CUDA_CHECK(cudaDeviceSynchronize());
 
-    // CUDA_CHECK(cudaMemcpy(mf.host.uy_avg,
-    //                       mf.device.uy_avg,
-    //                       Ncells * sizeof(real_t),
-    //                       cudaMemcpyDeviceToHost));
-
-    // std::fwrite(mf.host.uy_avg, sizeof(real_t), Ncells, mf.files.uy_avg);
-    // std::fflush(mf.files.uy_avg);
+    // write_radial_profile_outputs(mf);
 
     CUDA_CHECK(cudaEventDestroy(evStart));
     CUDA_CHECK(cudaEventDestroy(evStop));

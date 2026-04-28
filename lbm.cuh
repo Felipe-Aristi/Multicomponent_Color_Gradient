@@ -213,7 +213,7 @@ __device__ __forceinline__ void ColliStream_calculations(pop_t __restrict__ *fir
     const real_t pizz = Pizz[id];
     const real_t pixz = Pixz[id];
 
-    const real_t omega = omegab; // omega_sponge(y)
+    const real_t omega = omega_sponge(y);
     const real_t oms = (static_cast<real_t>(1.0) - omega);
 
     const real_t I = real_t(4.0) * rr * rb * invrT * invrT;

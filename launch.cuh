@@ -8,6 +8,7 @@
 
 #include "memory.cuh"
 #include "kernels.cuh"
+#include "meanF/memoryMeanFields.cuh"
 
 inline void launch_bubble(const CudaConfig &cfg, const LbmDevice &d, cudaStream_t stream = 0)
 {
@@ -62,12 +63,28 @@ inline void launch_update_tke_average(real_t *d_tke_avg,
 inline void launch_update_uy_average(const CudaConfig &cfg,
                                      const LbmDevice &d,
                                      real_t *d_uy_avg,
-                                     unsigned int step,
-                                     unsigned int step_uy_avg_start,
+                                     unsigned int sample_count,
                                      cudaStream_t stream = 0)
 {
     update_uy_average<<<cfg.grid, cfg.block, 0, stream>>>(
-        d.uy, d_uy_avg, step, step_uy_avg_start);
+        d.uy, d_uy_avg, sample_count);
+
+    CUDA_CHECK(cudaGetLastError());
+}
+
+inline void launch_accumulate_radial_moments(const CudaConfig &cfg,
+                                             const LbmDevice &d,
+                                             MeanFieldsDevice &mean,
+                                             cudaStream_t stream = 0)
+{
+    accumulate_radial_moments<<<cfg.grid, cfg.block, 0, stream>>>(
+        d.ux, d.uy, d.uz,
+        mean.radial_sum_uy,
+        mean.radial_sum_uy2,
+        mean.radial_sum_ur,
+        mean.radial_sum_ur2,
+        mean.radial_sum_uruy,
+        mean.radial_count);
 
     CUDA_CHECK(cudaGetLastError());
 }

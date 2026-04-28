@@ -123,7 +123,7 @@ __device__ __forceinline__ void neumann_calculation(pop_t __restrict__ *fir, rea
     const real_t aR = rrB * invRhoT;
     const real_t aB = rbB * invRhoT;
 
-    const real_t omega = omegab; // omega_sponge(yF)
+    const real_t omega = omega_sponge(yF);
     const real_t oms = static_cast<real_t>(1.0) - omega;
 
     constexpr_for<0, Q>(

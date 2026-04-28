@@ -7,6 +7,7 @@
 // Steps
 inline constexpr int NSTEP = 200000;
 inline constexpr int NOUTPUT = 2000;
+inline constexpr bool write_vti_output = true;
 
 // Grid
 inline constexpr label_t NX = static_cast<label_t>(128);
@@ -15,6 +16,8 @@ inline constexpr label_t NY = static_cast<label_t>(400);
 inline constexpr label_t sponge_cells = static_cast<label_t>(10);
 
 inline constexpr label_t Ncells = NX * NY * NZ;
+inline constexpr label_t NR_BINS = NX / static_cast<label_t>(2);
+inline constexpr label_t NradialProfileCells = NY * NR_BINS;
 
 // VELOCITY SET D2Q27 definition
 inline constexpr label_t Q = 27;

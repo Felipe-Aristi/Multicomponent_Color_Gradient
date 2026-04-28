@@ -18,17 +18,16 @@
 #include "../utilities/cudaUtilities.cuh"
 #include "../memory.cuh"
 
-// Folder: <cwd>/LBM_bubble/vti
+// Folder: <cwd>/JET_VTK/Re<Re>_We<We>/vti_data
 inline std::filesystem::path default_out_dir()
 {
     std::ostringstream folder_name;
     folder_name << "Re"
                 << static_cast<int>(std::round(Re))
                 << "_We"
-                << static_cast<int>(std::round(We))
-                << "_vtifiles";
+                << static_cast<int>(std::round(We));
 
-    return std::filesystem::current_path() / "JET_VTK" / folder_name.str();
+    return std::filesystem::current_path() / "JET_VTK" / folder_name.str() / "vti_data";
 }
 
 inline const char *vtk_real_type()

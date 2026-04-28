@@ -6,6 +6,8 @@
 
 using real_t = float;
 using label_t = uint32_t;
+using profile_stat_t = double;
+using profile_count_t = unsigned long long;
 
 // Pure FP32 experiment: macroscopic fields and populations both stay in float.
 using pop_t = float; // __half for mixed-precision tests

@@ -47,7 +47,7 @@ __device__ __forceinline__ real_t convectiveB(const real_t phiBold,
 
 // Sponge layer
 inline constexpr real_t sponge_gain = static_cast<real_t>(3.0);
-inline constexpr real_t sponge_K = static_cast<real_t>(20.0);
+inline constexpr real_t sponge_K = static_cast<real_t>(800.0);
 
 inline constexpr label_t sponge_y_end = NY - static_cast<label_t>(2);
 inline constexpr label_t sponge_y_start = sponge_y_end - sponge_cells + static_cast<label_t>(1);
@@ -81,7 +81,7 @@ __device__ __forceinline__ real_t nu_sponge(const label_t y) noexcept
 
 __device__ __forceinline__ real_t tau_sponge(const label_t y) noexcept
 {
-    return real_t(0.5) + static_cast<real_t>((nu_sponge(y)) / cs2);
+    return real_t(0.5) + static_cast<real_t>((nu_sponge(y)) * inv_cs2);
 }
 
 __device__ __forceinline__ real_t omega_sponge(const label_t y) noexcept

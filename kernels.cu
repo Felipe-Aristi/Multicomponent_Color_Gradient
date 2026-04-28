@@ -166,8 +166,7 @@ __global__ void update_tke_average(real_t *tke_avg,
 
 __global__ void update_uy_average(const real_t *__restrict__ uy,
                                   real_t *__restrict__ uy_avg,
-                                  unsigned int step,
-                                  unsigned int step_uy_avg_start)
+                                  unsigned int sample_count)
 {
     const label_t x = threadIdx.x + blockIdx.x * blockDim.x;
     const label_t y = threadIdx.y + blockIdx.y * blockDim.y;
@@ -180,8 +179,54 @@ __global__ void update_uy_average(const real_t *__restrict__ uy,
 
     const size_t id = idx(x, y, z);
 
-    const unsigned int sample_count = step - step_uy_avg_start;
     const real_t count = static_cast<real_t>(sample_count);
 
     uy_avg[id] = (uy_avg[id] * count + uy[id]) / (count + static_cast<real_t>(1));
+}
+
+__global__ void accumulate_radial_moments(const real_t *__restrict__ ux,
+                                          const real_t *__restrict__ uy,
+                                          const real_t *__restrict__ uz,
+                                          profile_stat_t *__restrict__ sum_uy,
+                                          profile_stat_t *__restrict__ sum_uy2,
+                                          profile_stat_t *__restrict__ sum_ur,
+                                          profile_stat_t *__restrict__ sum_ur2,
+                                          profile_stat_t *__restrict__ sum_uruy,
+                                          profile_count_t *__restrict__ count)
+{
+    const label_t x = threadIdx.x + blockIdx.x * blockDim.x;
+    const label_t y = threadIdx.y + blockIdx.y * blockDim.y;
+    const label_t z = threadIdx.z + blockIdx.z * blockDim.z;
+
+    if (interior(x, y, z))
+    {
+        return;
+    }
+
+    const real_t dx = static_cast<real_t>(x) - jet_x0;
+    const real_t dz = static_cast<real_t>(z) - jet_z0;
+    const real_t r = sqrt(dx * dx + dz * dz);
+    const label_t rb = static_cast<label_t>(r);
+
+    if (rb >= NR_BINS)
+    {
+        return;
+    }
+
+    const size_t id = idx(x, y, z);
+    const size_t mid = static_cast<size_t>(y) * static_cast<size_t>(NR_BINS) + static_cast<size_t>(rb);
+    const real_t uy_value = uy[id];
+
+    real_t ur_value = static_cast<real_t>(0);
+    if (r > static_cast<real_t>(1.0e-12))
+    {
+        ur_value = (ux[id] * dx + uz[id] * dz) / r;
+    }
+
+    atomicAdd(&sum_uy[mid], static_cast<profile_stat_t>(uy_value));
+    atomicAdd(&sum_uy2[mid], static_cast<profile_stat_t>(uy_value) * static_cast<profile_stat_t>(uy_value));
+    atomicAdd(&sum_ur[mid], static_cast<profile_stat_t>(ur_value));
+    atomicAdd(&sum_ur2[mid], static_cast<profile_stat_t>(ur_value) * static_cast<profile_stat_t>(ur_value));
+    atomicAdd(&sum_uruy[mid], static_cast<profile_stat_t>(ur_value) * static_cast<profile_stat_t>(uy_value));
+    atomicAdd(&count[mid], static_cast<profile_count_t>(1));
 }
