@@ -25,27 +25,13 @@ __device__ __forceinline__ real_t feq(const real_t rho,
 
     const real_t cu = ux * cx + uy * cy + uz * cz;
     const real_t usq = ux * ux + uy * uy + uz * uz;
+
+    const real_t cu2 = cu * cu;
+
     const real_t A2eq = (cu * cu) * inv_2cs4 - usq * inv_2cs2 + cu * inv_cs2;
+    const real_t A3eq = cu * (cu2 * inv_6cs6 - usq * inv_2cs4);
 
-    return wi * rho * A2eq + wi * (rho - static_cast<real_t>(1.0));
-}
-
-template <label_t I>
-__device__ __forceinline__ real_t geq(const real_t rhoT,
-                                      const real_t ux,
-                                      const real_t uy,
-                                      const real_t uz) noexcept
-{
-    constexpr real_t cx = static_cast<real_t>(D3Q27::cx<I>());
-    constexpr real_t cy = static_cast<real_t>(D3Q27::cy<I>());
-    constexpr real_t cz = static_cast<real_t>(D3Q27::cz<I>());
-    constexpr real_t wi = D3Q27::w<I>();
-
-    const real_t cu = ux * cx + uy * cy + uz * cz;
-    const real_t usq = ux * ux + uy * uy + uz * uz;
-    const real_t A2eq = (cu * cu) * inv_2cs4 - usq * inv_2cs2 + cu * inv_cs2;
-
-    return wi * rhoT * A2eq + wi * (rhoT - static_cast<real_t>(2.0));
+    return wi * rho * (real_t(1.0) + A2eq + A3eq);
 }
 
 template <label_t I>
@@ -54,7 +40,10 @@ __device__ __forceinline__ real_t fneqr(const real_t Pixx,
                                         const real_t Piyy,
                                         const real_t Piyz,
                                         const real_t Pizz,
-                                        const real_t Pixz) noexcept
+                                        const real_t Pixz,
+                                        const real_t ux,
+                                        const real_t uy,
+                                        const real_t uz) noexcept
 {
     constexpr real_t Hxx = D3Q27::Hxx<I>();
     constexpr real_t Hxy = D3Q27::Hxy<I>();
@@ -63,21 +52,29 @@ __device__ __forceinline__ real_t fneqr(const real_t Pixx,
     constexpr real_t Hzz = D3Q27::Hzz<I>();
     constexpr real_t Hxz = D3Q27::Hxz<I>();
 
+    constexpr real_t Hxxy = D3Q27::Hxxy<I>();
+    constexpr real_t Hxxz = D3Q27::Hxxz<I>();
+    constexpr real_t Hxyy = D3Q27::Hxyy<I>();
+    constexpr real_t Hxzz = D3Q27::Hxzz<I>();
+    constexpr real_t Hyyz = D3Q27::Hyyz<I>();
+    constexpr real_t Hyzz = D3Q27::Hyzz<I>();
+    constexpr real_t Hxyz = D3Q27::Hxyz<I>();
+
     constexpr real_t wi = D3Q27::w<I>();
 
-    const real_t a2neq = wi * (Pixx * Hxx + real_t(2.0) * Pixy * Hxy + Piyy * Hyy + real_t(2.0) * Piyz * Hyz + Pizz * Hzz + real_t(2.0) * Pixz * Hxz) * inv_2cs4;
+    const real_t A2neq = (Pixx * Hxx + real_t(2.0) * Pixy * Hxy + Piyy * Hyy + real_t(2.0) * Piyz * Hyz + Pizz * Hzz + real_t(2.0) * Pixz * Hxz) * inv_2cs4;
 
-    return a2neq;
-}
+    const real_t a3xxy = Pixx * uy + real_t(2.0) * Pixy * ux;
+    const real_t a3xxz = Pixx * uz + real_t(2.0) * Pixz * ux;
+    const real_t a3xyy = Piyy * ux + real_t(2.0) * Pixy * uy;
+    const real_t a3xzz = Pizz * ux + real_t(2.0) * Pixz * uz;
+    const real_t a3yyz = Piyy * uz + real_t(2.0) * Piyz * uy;
+    const real_t a3yzz = Pizz * uy + real_t(2.0) * Piyz * uz;
+    const real_t a3xyz = Pixy * uz + Pixz * uy + Piyz * ux;
 
-template <label_t I>
-__device__ __forceinline__ real_t split_shifted_pop(const real_t alpha,
-                                                    const real_t gi_shifted,
-                                                    const real_t delta) noexcept
-{
-    constexpr real_t wi = D3Q27::w<I>();
+    const real_t A3neq = (a3xxy * Hxxy + a3xxz * Hxxz + a3xyy * Hxyy + a3xzz * Hxzz + a3yyz * Hyyz + a3yzz * Hyzz + real_t(2.0) * a3xyz * Hxyz) * inv_2cs6;
 
-    return alpha * gi_shifted + (real_t(2.0) * alpha - real_t(1.0)) * wi + delta;
+    return wi * (A2neq + A3neq);
 }
 
 //------------- Macroscopic fields calculation ------------
@@ -111,8 +108,8 @@ __device__ __forceinline__ void Mfields_calculation(const pop_t __restrict__ *fr
         {
             constexpr label_t i = decltype(I)::value;
 
-            const real_t fr_i = load_pop(fr[fidx(id, i)]);
-            const real_t fb_i = load_pop(fb[fidx(id, i)]);
+            const real_t fr_i = fr[fidx(id, i)];
+            const real_t fb_i = fb[fidx(id, i)];
 
             sumr += fr_i;
             sumb += fb_i;
@@ -126,8 +123,6 @@ __device__ __forceinline__ void Mfields_calculation(const pop_t __restrict__ *fr
             jx += gi * cx;
             jy += gi * cy;
             jz += gi * cz;
-
-            // velocity_alt<i>(gi, jx, jy, jz);
 
             constexpr real_t Hxx = D3Q27::Hxx<i>();
             constexpr real_t Hxy = D3Q27::Hxy<i>();
@@ -144,8 +139,8 @@ __device__ __forceinline__ void Mfields_calculation(const pop_t __restrict__ *fr
             Axz += gi * Hxz;
         });
 
-    const real_t rhorr = sumr + real_t(1.0);
-    const real_t rhobb = sumb + real_t(1.0);
+    const real_t rhorr = sumr;
+    const real_t rhobb = sumb;
 
     rhor[id] = rhorr;
     rhob[id] = rhobb;
@@ -225,19 +220,19 @@ __device__ __forceinline__ void ColliStream_calculations(pop_t __restrict__ *fir
             {
                 constexpr label_t i = decltype(I)::value;
 
-                const real_t gieq = geq<i>(rT, vx, vy, vz);
-                const real_t gineqr = fneqr<i>(pixx, pixy, piyy, piyz, pizz, pixz);
+                const real_t fieq = feq<i>(rT, vx, vy, vz);
+                const real_t gineqr = fneqr<i>(pixx, pixy, piyy, piyz, pizz, pixz, vx, vy, vz);
 
-                const real_t Omega1 = gieq + oms * gineqr;
+                const real_t Omega1 = fieq + oms * gineqr;
 
                 const real_t gi = Omega1;
 
-                const int xn = static_cast<int>(x) + D3Q27::cx<i>();
-                const int zn = static_cast<int>(z) + D3Q27::cz<i>();
+                // const int xn = static_cast<int>(x) + D3Q27::cx<i>();
+                // const int zn = static_cast<int>(z) + D3Q27::cz<i>();
 
                 // // periodic boundary condition
-                // const int xn = wrapx(static_cast<int>(x) + D3Q27::cx<i>());
-                // const int zn = wrapz(static_cast<int>(z) + D3Q27::cz<i>());
+                const int xn = wrapx(static_cast<int>(x) + D3Q27::cx<i>());
+                const int zn = wrapz(static_cast<int>(z) + D3Q27::cz<i>());
 
                 const int yn = static_cast<int>(y) + D3Q27::cy<i>();
 
@@ -245,8 +240,8 @@ __device__ __forceinline__ void ColliStream_calculations(pop_t __restrict__ *fir
                                         static_cast<label_t>(yn),
                                         static_cast<label_t>(zn));
 
-                fir[fidx(idn, i)] = save_pop(split_shifted_pop<i>(aR, gi, real_t(0.0)));
-                fib[fidx(idn, i)] = save_pop(split_shifted_pop<i>(aB, gi, real_t(0.0)));
+                fir[fidx(idn, i)] = aR * gi;
+                fib[fidx(idn, i)] = aB * gi;
             });
         return;
     }
@@ -267,10 +262,10 @@ __device__ __forceinline__ void ColliStream_calculations(pop_t __restrict__ *fir
         {
             constexpr label_t i = decltype(I)::value;
 
-            const real_t gieq = geq<i>(rT, vx, vy, vz);
-            const real_t gineqr = fneqr<i>(pixx, pixy, piyy, piyz, pizz, pixz);
+            const real_t fieq = feq<i>(rT, vx, vy, vz);
+            const real_t gineqr = fneqr<i>(pixx, pixy, piyy, piyz, pizz, pixz, vx, vy, vz);
 
-            const real_t Omega1 = gieq + oms * gineqr;
+            const real_t Omega1 = fieq + oms * gineqr;
 
             const real_t Omega2R = Omega2<i>(Fxr, Fyr, Fzr, absforcer, Ar);
             // const real_t Omega2B = Omega2<i>(Fxb, Fyb, Fzb, absforcer, Ab);
@@ -279,12 +274,12 @@ __device__ __forceinline__ void ColliStream_calculations(pop_t __restrict__ *fir
 
             const real_t Deltai = recolorDelta<i>(rr, rb, Fxr, Fyr, Fzr, absforcer);
 
-            const int xn = static_cast<int>(x) + D3Q27::cx<i>();
-            const int zn = static_cast<int>(z) + D3Q27::cz<i>();
+            // const int xn = static_cast<int>(x) + D3Q27::cx<i>();
+            // const int zn = static_cast<int>(z) + D3Q27::cz<i>();
 
             // periodic boundary condition
-            // const int xn = wrapx(static_cast<int>(x) + D3Q27::cx<i>());
-            // const int zn = wrapz(static_cast<int>(z) + D3Q27::cz<i>());
+            const int xn = wrapx(static_cast<int>(x) + D3Q27::cx<i>());
+            const int zn = wrapz(static_cast<int>(z) + D3Q27::cz<i>());
 
             const int yn = static_cast<int>(y) + D3Q27::cy<i>();
 
@@ -292,8 +287,8 @@ __device__ __forceinline__ void ColliStream_calculations(pop_t __restrict__ *fir
                                     static_cast<label_t>(yn),
                                     static_cast<label_t>(zn));
 
-            fir[fidx(idn, i)] = save_pop(split_shifted_pop<i>(aR, gi, Deltai));
-            fib[fidx(idn, i)] = save_pop(split_shifted_pop<i>(aB, gi, -Deltai));
+            fir[fidx(idn, i)] = aR * gi + Deltai;
+            fib[fidx(idn, i)] = aB * gi - Deltai;
         });
 }
 

@@ -42,7 +42,7 @@ struct MeanFieldsState
     bool first_tke_sample = true;
     unsigned int step_uy_avg_start = 0;
     unsigned int uy_avg_samples = 0;
-    static constexpr real_t tke_tolerance = static_cast<real_t>(1e-1);
+    static constexpr real_t tke_tolerance = static_cast<real_t>(1e-0);
 };
 
 inline constexpr std::size_t radial_stat_bytes()

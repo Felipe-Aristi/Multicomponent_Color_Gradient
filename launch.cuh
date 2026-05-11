@@ -102,6 +102,7 @@ inline void launch_inlet_bc(const CudaConfig &cfg, const LbmDevice &d, cudaStrea
 {
     inlet<<<grid2D_xz(cfg), block2D_xz(cfg), 0, stream>>>(
         d.fir, d.rhor, d.fib, d.rhob,
+        d.ux, d.uy, d.uz,
         d.Pixx, d.Pixy, d.Piyy, d.Piyz, d.Pizz, d.Pixz);
     CUDA_CHECK(cudaGetLastError());
 }

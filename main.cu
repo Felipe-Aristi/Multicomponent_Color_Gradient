@@ -16,13 +16,13 @@ constexpr int deviceID = 0;
 
 int main()
 {
-    // MeanFieldsRuntime mf{};
+    MeanFieldsRuntime mf{};
 
-    // if (!initialize_mean_fields_runtime(deviceID, mf))
-    // {
-    //     CUDA_CHECK(cudaDeviceReset());
-    //     return EXIT_FAILURE;
-    // }
+    if (!initialize_mean_fields_runtime(deviceID, mf))
+    {
+        CUDA_CHECK(cudaDeviceReset());
+        return EXIT_FAILURE;
+    }
 
     CudaConfig cfg = print_device_and_make_config(deviceID);
 
@@ -46,11 +46,11 @@ int main()
     {
         launch_Macros(cfg, d);
 
-        // if (mf.state.start_uy_average)
-        // {
-        //     launch_accumulate_radial_moments(cfg, d, mf.device);
-        //     ++mf.state.uy_avg_samples;
-        // }
+        if (mf.state.start_uy_average)
+        {
+            launch_accumulate_radial_moments(cfg, d, mf.device);
+            ++mf.state.uy_avg_samples;
+        }
 
         launch_collistream(cfg, d);
         launch_inlet_bc(cfg, d);
@@ -63,29 +63,29 @@ int main()
 
         if (step % NOUTPUT == 0)
         {
-            // CUDA_CHECK(cudaMemset(mf.device.tke_total, 0, sizeof(real_t)));
+            CUDA_CHECK(cudaMemset(mf.device.tke_total, 0, sizeof(real_t)));
 
-            // launch_compute_total_tke(cfg, d, mf.device.tke_total);
-            // launch_update_tke_average(mf.device.tke_avg, mf.device.tke_total, step, 0);
+            launch_compute_total_tke(cfg, d, mf.device.tke_total);
+            launch_update_tke_average(mf.device.tke_avg, mf.device.tke_total, step, 0);
 
-            // CUDA_CHECK(cudaDeviceSynchronize());
+            CUDA_CHECK(cudaDeviceSynchronize());
 
-            // CUDA_CHECK(cudaMemcpy(&mf.host.tke_total,
-            //                       mf.device.tke_total,
-            //                       sizeof(real_t),
-            //                       cudaMemcpyDeviceToHost));
+            CUDA_CHECK(cudaMemcpy(&mf.host.tke_total,
+                                  mf.device.tke_total,
+                                  sizeof(real_t),
+                                  cudaMemcpyDeviceToHost));
 
-            // CUDA_CHECK(cudaMemcpy(&mf.host.tke_avg,
-            //                       mf.device.tke_avg,
-            //                       sizeof(real_t),
-            //                       cudaMemcpyDeviceToHost));
+            CUDA_CHECK(cudaMemcpy(&mf.host.tke_avg,
+                                  mf.device.tke_avg,
+                                  sizeof(real_t),
+                                  cudaMemcpyDeviceToHost));
 
-            // process_tke_sample(mf, step);
+            process_tke_sample(mf, step);
 
-            // if (mf.state.start_uy_average && mf.state.uy_avg_samples > 0)
-            // {
-            //     write_radial_profile_outputs(mf);
-            // }
+            if (mf.state.start_uy_average && mf.state.uy_avg_samples > 0)
+            {
+                write_radial_profile_outputs(mf);
+            }
 
             if constexpr (write_vti_output)
             {
@@ -96,12 +96,12 @@ int main()
 
     CUDA_CHECK(cudaDeviceSynchronize());
 
-    // write_radial_profile_outputs(mf);
+    write_radial_profile_outputs(mf);
 
     CUDA_CHECK(cudaEventDestroy(evStart));
     CUDA_CHECK(cudaEventDestroy(evStop));
 
-    // free_mean_fields_runtime(mf);
+    free_mean_fields_runtime(mf);
 
     free_device_memory(d);
     free_host_memory(h);

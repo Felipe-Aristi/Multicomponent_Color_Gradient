@@ -33,8 +33,8 @@ __device__ void init_equilibrium(pop_t *fr, pop_t *fb,
 #pragma unroll 27
     for (int i = 0; i < Q; ++i)
     {
-        fr[fidx(id, i)] = save_pop(d_w[i] * (rhor_i - real_t(1.0)));
-        fb[fidx(id, i)] = save_pop(d_w[i] * (rhob_i - real_t(1.0)));
+        fr[fidx(id, i)] = d_w[i] * rhor_i;
+        fb[fidx(id, i)] = d_w[i] * rhob_i;
     }
 }
 

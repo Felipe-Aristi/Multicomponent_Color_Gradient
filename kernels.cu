@@ -97,6 +97,7 @@ __global__ void ColliStream(pop_t __restrict__ *fir, const real_t __restrict__ *
 
 __global__ void inlet(pop_t __restrict__ *fr, real_t __restrict__ *rhor,
                       pop_t __restrict__ *fb, real_t __restrict__ *rhob,
+                      const real_t __restrict__ *ux, const real_t __restrict__ *uy, const real_t __restrict__ *uz,
                       const real_t __restrict__ *Pixx, const real_t __restrict__ *Pixy, const real_t __restrict__ *Piyy,
                       const real_t __restrict__ *Piyz, const real_t __restrict__ *Pizz, const real_t __restrict__ *Pixz)
 {
@@ -109,7 +110,7 @@ __global__ void inlet(pop_t __restrict__ *fr, real_t __restrict__ *rhor,
         return;
     }
 
-    inlet_calculation(fr, rhor, fb, rhob, Pixx, Pixy, Piyy, Piyz, Pizz, Pixz, x, z);
+    inlet_calculation(fr, rhor, fb, rhob, ux, uy, uz, Pixx, Pixy, Piyy, Piyz, Pizz, Pixz, x, z);
 }
 
 __global__ void neumann(pop_t __restrict__ *fir, real_t __restrict__ *rhor,

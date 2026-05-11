@@ -61,16 +61,11 @@ __device__ __forceinline__ real_t recolorDelta(const real_t rhor, const real_t r
     const real_t rho = rhor + rhob;
     constexpr real_t wi = D3Q27::w<I>();
 
-    // const real_t vx = real_t(0);
-    // const real_t vy = real_t(0);
-    // const real_t vz = real_t(0);
-    // geq<I>(rho, vx, vy, vz);
-
-    const real_t gieq = wi * rho; //
+    const real_t fieq = wi * rho;
     const real_t Cos = cosphi<I>(Fx, Fy, Fz, absF);
     const real_t coeff = beta_recolor * ((rhor * rhob) / (rho * rho));
 
-    return coeff * Cos * gieq;
+    return coeff * Cos * fieq;
 }
 
 #endif

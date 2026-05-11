@@ -30,8 +30,8 @@ __device__ void init_density_jet(pop_t __restrict__ *fr, real_t __restrict__ *rh
                             real_t fir = feq<i>(rhor[id], vx, vy, vz);
                             real_t fib = feq<i>(rhob[id], vx, vy, vz);
 
-                            fr[fidx(id, i)] = save_pop(fir);
-                            fb[fidx(id, i)] = save_pop(fib); });
+                            fr[fidx(id, i)] = fir;
+                            fb[fidx(id, i)] = fib; });
 }
 
 __device__ void jet_mask(pop_t __restrict__ *fr, real_t __restrict__ *rhor,
@@ -57,8 +57,8 @@ __device__ void jet_mask(pop_t __restrict__ *fr, real_t __restrict__ *rhor,
         real_t fir = feq<i>(rhor[id], vx, vy, vz);
         real_t fib = feq<i>(rhob[id], vx, vy, vz);
 
-        fr[fidx(id, i)] = save_pop(fir);
-        fb[fidx(id, i)] = save_pop(fib); });
+        fr[fidx(id, i)] = fir;
+        fb[fidx(id, i)] = fib; });
 }
 
 #endif
