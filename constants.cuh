@@ -28,7 +28,7 @@ inline constexpr std::size_t fSize = std::size_t(Ncells) * (std::size_t)Q;
 inline constexpr std::size_t bytesF = fSize * sizeof(pop_t);
 
 // Jet parameters
-inline constexpr real_t jet_radius = static_cast<real_t>(8.0);
+inline constexpr real_t jet_radius = static_cast<real_t>(7.0);
 inline constexpr real_t jet_x0 = static_cast<real_t>(NX - 1) / static_cast<real_t>(2);
 inline constexpr real_t jet_z0 = static_cast<real_t>(NZ - 1) / static_cast<real_t>(2);
 inline constexpr real_t jet_velocity = static_cast<real_t>(0.05);
@@ -53,7 +53,7 @@ inline constexpr real_t inv_2cs6 = static_cast<real_t>(1.0) / (static_cast<real_
 
 // FLuid parameters
 inline constexpr real_t rhor0 = static_cast<real_t>(1);
-inline constexpr real_t rhob0 = static_cast<real_t>(0.95);
+inline constexpr real_t rhob0 = static_cast<real_t>(1);
 
 inline constexpr real_t Re = static_cast<real_t>(5000);
 inline constexpr real_t nu = (static_cast<real_t>(2) * jet_radius * jet_velocity) / Re;
@@ -67,7 +67,7 @@ inline constexpr real_t omegab = static_cast<real_t>(1) / taub;
 
 // Weber number
 // inline constexpr std::size_t WeberInteger = WEBER;
-inline constexpr real_t We = static_cast<real_t>(2500);
+inline constexpr real_t We = static_cast<real_t>(2000);
 
 inline constexpr real_t sigma = static_cast<real_t>((rhob0 * jet_velocity * jet_velocity * static_cast<real_t>(2.0) * jet_radius) / We);
 inline constexpr real_t beta_recolor = static_cast<real_t>(0.80);

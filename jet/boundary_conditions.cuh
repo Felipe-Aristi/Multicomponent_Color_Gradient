@@ -84,6 +84,16 @@ __device__ __forceinline__ void inlet_calculation(pop_t __restrict__ *fr, real_t
         });
 }
 
+__device__ __forceinline__ real_t convective_outlet_value(
+    const real_t phiB_old,
+    const real_t phiF,
+    const real_t uc)
+{
+    return phiB_old - uc * (phiB_old - phiF);
+}
+
+// OLD PURE NEUMANN COPY OUTFLOW
+/*
 __device__ __forceinline__ void neumann_calculation(pop_t __restrict__ *fir, real_t __restrict__ *rhor,
                                                     pop_t __restrict__ *fib, real_t __restrict__ *rhob,
                                                     real_t __restrict__ *ux, real_t __restrict__ *uy, real_t __restrict__ *uz,
@@ -141,6 +151,79 @@ __device__ __forceinline__ void neumann_calculation(pop_t __restrict__ *fir, rea
 
                 const real_t gieq = feq<i>(rhoT, uxB, uyB, uzB);
                 const real_t gineqr = fneqr<i>(pixx, pixy, piyy, piyz, pizz, pixz, uxf, uyf, uzf);
+                const real_t gi = gieq + oms * gineqr;
+
+                fir[fidx(fluid_node, i)] = aR * gi;
+                fib[fidx(fluid_node, i)] = aB * gi;
+            }
+        });
+}
+*/
+
+__device__ __forceinline__ void neumann_calculation(pop_t __restrict__ *fir, real_t __restrict__ *rhor,
+                                                    pop_t __restrict__ *fib, real_t __restrict__ *rhob,
+                                                    real_t __restrict__ *ux, real_t __restrict__ *uy, real_t __restrict__ *uz,
+                                                    const real_t __restrict__ *Pixx, const real_t __restrict__ *Pixy, const real_t __restrict__ *Piyy,
+                                                    const real_t __restrict__ *Piyz, const real_t __restrict__ *Pizz, const real_t __restrict__ *Pixz,
+                                                    const label_t x, const label_t z)
+{
+    const label_t yB = static_cast<label_t>(NY - 1);
+    const label_t yF = static_cast<label_t>(NY - 2);
+
+    const label_t idB = idx(x, yB, z);
+    const label_t idF = idx(x, yF, z);
+
+    const real_t rrF = rhor[idF];
+    const real_t rbF = rhob[idF];
+    const real_t uxF = ux[idF];
+    const real_t uyF = uy[idF];
+    const real_t uzF = uz[idF];
+
+    // Outlet normal points in +y. Negative/oversized local speeds would make
+    // the explicit convective update act like an inlet or overshoot.
+    const real_t uc = clamp01(uyF);
+
+    const real_t rrB = convective_outlet_value(rhor[idB], rrF, uc);
+    const real_t rbB = convective_outlet_value(rhob[idB], rbF, uc);
+    const real_t uxB = convective_outlet_value(ux[idB], uxF, uc);
+    const real_t uyB = convective_outlet_value(uy[idB], uyF, uc);
+    const real_t uzB = convective_outlet_value(uz[idB], uzF, uc);
+
+    rhor[idB] = rrB;
+    rhob[idB] = rbB;
+    ux[idB] = uxB;
+    uy[idB] = uyB;
+    uz[idB] = uzB;
+
+    const real_t rhoT = rrB + rbB;
+    const real_t invRhoT = static_cast<real_t>(1.0) / rhoT;
+
+    const real_t pixx = Pixx[idF];
+    const real_t pixy = Pixy[idF];
+    const real_t piyy = Piyy[idF];
+    const real_t piyz = Piyz[idF];
+    const real_t pizz = Pizz[idF];
+    const real_t pixz = Pixz[idF];
+
+    const real_t aR = rrB * invRhoT;
+    const real_t aB = rbB * invRhoT;
+
+    const real_t omega = omega_sponge(yF);
+    const real_t oms = static_cast<real_t>(1.0) - omega;
+
+    constexpr_for<0, Q>(
+        [&] __device__(auto I)
+        {
+            constexpr label_t i = decltype(I)::value;
+
+            if constexpr (D3Q27::cy<i>() == -1)
+            {
+
+                const int fluid_nodei = static_cast<int>(idF) + D3Q27::offset_xz<i>();
+                const label_t fluid_node = static_cast<label_t>(fluid_nodei);
+
+                const real_t gieq = feq<i>(rhoT, uxB, uyB, uzB);
+                const real_t gineqr = fneqr<i>(pixx, pixy, piyy, piyz, pizz, pixz, uxF, uyF, uzF);
                 const real_t gi = gieq + oms * gineqr;
 
                 fir[fidx(fluid_node, i)] = aR * gi;

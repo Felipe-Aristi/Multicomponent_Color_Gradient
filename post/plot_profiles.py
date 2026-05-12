@@ -10,6 +10,7 @@ from mean_profile_io import (
     find_mean_dir,
     fit_virtual_origin,
     parse_common_args,
+    read_constants,
     read_radial_moments,
     require_samples,
 )
@@ -69,19 +70,61 @@ def first_half_radius(profile, radius, center_value):
     return r1 + (0.5 - u1) * (r2 - r1) / (u2 - u1)
 
 
+def radial_bin_centers(nx, nz, nr, x0, z0):
+    radius_sum = np.zeros(nr, dtype=np.float64)
+    radius_count = np.zeros(nr, dtype=np.int64)
+
+    for x in range(1, nx - 1):
+        dx = float(x) - x0
+        for z in range(1, nz - 1):
+            dz = float(z) - z0
+            r = np.sqrt(dx * dx + dz * dz)
+            rb = int(r)
+            if rb < nr:
+                radius_sum[rb] += r
+                radius_count[rb] += 1
+
+    radius = np.arange(nr, dtype=np.float64)
+    np.divide(radius_sum, radius_count, out=radius, where=radius_count > 0)
+
+    # The first annulus is used as the numerical centerline in the solver.
+    radius[0] = 0.0
+    return radius
+
+
+def resolve_run_scales(metadata, diameter, u_jet):
+    constants = read_constants(PROJECT_ROOT)
+
+    if diameter is None:
+        diameter = float(metadata.get("D", constants.get("D", 16.0)))
+
+    if u_jet is None:
+        u_jet = float(metadata.get("U_jet", constants.get("U_MAX", 0.05)))
+
+    nx = int(metadata.get("NX", constants.get("NX", 0)))
+    nz = int(metadata.get("NZ", constants.get("NZ", 0)))
+    x0 = float(metadata.get("jet_x0", constants.get("jet_x0", (nx - 1) / 2.0)))
+    z0 = float(metadata.get("jet_z0", constants.get("jet_z0", (nz - 1) / 2.0)))
+
+    return float(diameter), float(u_jet), nx, nz, x0, z0
+
+
 def plot_mean_profiles(mean_dir, output_dir, diameter, u_jet, slices, fit_start, fit_end):
     output_dir = Path(output_dir)
     output_dir.mkdir(parents=True, exist_ok=True)
 
     moments = read_radial_moments(mean_dir)
     require_samples(moments)
+    metadata = moments.get("metadata", {})
+    diameter, u_jet, nx, nz, jet_x0, jet_z0 = resolve_run_scales(metadata, diameter, u_jet)
+
     fields = averaged_radial_fields(moments)
 
     uy = fields["uy"]
     count = fields["count"]
     ny, nr = uy.shape
     y = np.arange(ny, dtype=np.float64)
-    radius = np.arange(nr, dtype=np.float64)
+    radius = radial_bin_centers(nx, nz, nr, jet_x0, jet_z0)
 
     uc = uy[:, 0]
     valid_y = np.isfinite(uc) & (uc > 0.0) & (count[:, 0] > 0)
@@ -92,9 +135,10 @@ def plot_mean_profiles(mean_dir, output_dir, diameter, u_jet, slices, fit_start,
         y, uc, diameter, u_jet, fit_start, fit_end
     )
 
-    metadata = moments.get("metadata", {})
     print(f"Using mean profile folder: {mean_dir}")
     print(f"radial_sample_count = {metadata.get('radial_sample_count', 'unknown')}")
+    print(f"D = {diameter}")
+    print(f"U_jet = {u_jet}")
     print(f"B = {spreading_rate}")
     print(f"y0 = {y0}")
 
@@ -230,12 +274,17 @@ def plot_mean_profiles(mean_dir, output_dir, diameter, u_jet, slices, fit_start,
         ax.yaxis.set_label_coords(-0.125, 0.585)
 
     summary_path = output_dir / "profile_summary.txt"
+    hussein_r_half = first_half_radius(HUSSEIN_U, HUSSEIN_X, 1.0)
+
     with summary_path.open("w") as summary:
         summary.write(f"mean_dir {mean_dir}\n")
         summary.write(f"radial_sample_count {metadata.get('radial_sample_count', 0)}\n")
         summary.write(f"D {diameter}\nU_jet {u_jet}\n")
         summary.write(f"B {spreading_rate}\ny0 {y0}\n")
-        summary.write("slice_D y_index r_half S\n")
+        summary.write(f"hussein_r_half_over_y_minus_y0 {hussein_r_half}\n")
+        summary.write("slice_D y_index r_half S S_over_hussein\n")
+
+        print(f"Hussein r_half/(y-y0) = {hussein_r_half:.4f}")
 
         for j, slice_over_d in enumerate(slices):
             y_idx = int(round(slice_over_d * diameter))
@@ -251,8 +300,12 @@ def plot_mean_profiles(mean_dir, output_dir, diameter, u_jet, slices, fit_start,
 
             r_half = first_half_radius(profile, radius, uc[y_idx])
             spread = r_half / (y_idx - y0) if np.isfinite(r_half) and y_idx > y0 else np.nan
-            summary.write(f"{slice_over_d:g} {y_idx} {r_half:.9g} {spread:.9g}\n")
-            print(f"Slice {slice_over_d:g}D: y={y_idx}, r_half = {r_half:.4f}, S = {spread:.4f}")
+            spread_ratio = spread / hussein_r_half if np.isfinite(spread) and np.isfinite(hussein_r_half) else np.nan
+            summary.write(f"{slice_over_d:g} {y_idx} {r_half:.9g} {spread:.9g} {spread_ratio:.9g}\n")
+            print(
+                f"Slice {slice_over_d:g}D: y={y_idx}, r_half = {r_half:.4f}, "
+                f"S = {spread:.4f}, S/Hussein = {spread_ratio:.3f}"
+            )
 
             ax3.plot(
                 radius[valid_r] / diameter,
@@ -291,6 +344,16 @@ def plot_mean_profiles(mean_dir, output_dir, diameter, u_jet, slices, fit_start,
                 )
 
     ax4.plot(HUSSEIN_X, HUSSEIN_U, ls="none", marker="x", ms=4, color=black, label="Hussein et al. (1994)")
+    if np.isfinite(hussein_r_half) and hussein_r_half > 0.0:
+        ax5.plot(
+            HUSSEIN_X / hussein_r_half,
+            HUSSEIN_U,
+            ls="none",
+            marker="x",
+            ms=4,
+            color=black,
+            label="Hussein et al. (1994)",
+        )
 
     ax3.legend(fontsize=10)
     ax4.legend(fontsize=10)

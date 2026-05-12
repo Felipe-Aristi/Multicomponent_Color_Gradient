@@ -39,6 +39,14 @@ def read_constants(project_root=PROJECT_ROOT):
     if jet_velocity is not None:
         constants["U_MAX"] = float(jet_velocity)
 
+    jet_x0 = parse_scalar_constant(text, "jet_x0")
+    if jet_x0 is not None:
+        constants["jet_x0"] = float(jet_x0)
+
+    jet_z0 = parse_scalar_constant(text, "jet_z0")
+    if jet_z0 is not None:
+        constants["jet_z0"] = float(jet_z0)
+
     re_value = parse_scalar_constant(text, "Re")
     if re_value is not None:
         constants["Re"] = int(round(float(re_value)))
@@ -238,8 +246,18 @@ def parse_common_args(description):
         default=f"Re{constants.get('Re', 5000)}_We{constants.get('We', 2500)}",
         help="Case folder, e.g. Re5000_We2500.",
     )
-    parser.add_argument("--diameter", type=float, default=constants.get("D", 16.0), help="Jet diameter in lattice units.")
-    parser.add_argument("--u-jet", type=float, default=constants.get("U_MAX", 0.05), help="Inlet jet velocity.")
+    parser.add_argument(
+        "--diameter",
+        type=float,
+        default=None,
+        help="Jet diameter in lattice units. Defaults to the run metadata, then constants.cuh.",
+    )
+    parser.add_argument(
+        "--u-jet",
+        type=float,
+        default=None,
+        help="Inlet jet velocity. Defaults to the run metadata, then constants.cuh.",
+    )
     parser.add_argument("--fit-start", type=float, default=10.0, help="Start of centerline fit in y/D.")
     parser.add_argument("--fit-end", type=float, default=15.0, help="End of centerline fit in y/D.")
     parser.add_argument("--slices", type=float, nargs="+", default=[10, 11, 12, 13, 14, 15], help="Axial slices in y/D.")
