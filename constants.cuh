@@ -7,6 +7,7 @@
 // Steps
 inline constexpr int NSTEP = 200000;
 inline constexpr int NOUTPUT = 2000;
+inline constexpr int NSTATS_START_STEP = 6000;
 inline constexpr bool write_vti_output = true;
 
 // Grid

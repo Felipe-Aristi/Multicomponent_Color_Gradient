@@ -26,6 +26,13 @@ int main()
 
     CudaConfig cfg = print_device_and_make_config(deviceID);
 
+    if constexpr (NSTEP <= NSTATS_START_STEP)
+    {
+        std::cout << "Warning: NSTEP (" << NSTEP
+                  << ") <= NSTATS_START_STEP (" << NSTATS_START_STEP
+                  << "), so radial statistics will not start in this run.\n";
+    }
+
     LbmDevice d = allocate_device_memory();
     LbmHost h = allocate_host_memory();
 
@@ -45,6 +52,8 @@ int main()
     for (int step = 0; step < NSTEP; ++step)
     {
         launch_Macros(cfg, d);
+
+        update_radial_statistics_start(mf, step);
 
         if (mf.state.start_uy_average)
         {

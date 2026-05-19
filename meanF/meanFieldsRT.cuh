@@ -107,6 +107,7 @@ inline void write_case_metadata(const MeanFieldsRuntime &mf)
     std::fprintf(file, "NZ %u\n", static_cast<unsigned int>(NZ));
     std::fprintf(file, "NSTEP %d\n", NSTEP);
     std::fprintf(file, "NOUTPUT %d\n", NOUTPUT);
+    std::fprintf(file, "NSTATS_START_STEP %d\n", NSTATS_START_STEP);
     std::fprintf(file, "NR_BINS %u\n", static_cast<unsigned int>(NR_BINS));
     std::fprintf(file, "write_vti_output %d\n", write_vti_output ? 1 : 0);
     std::fprintf(file, "jet_radius %.9g\n", static_cast<double>(jet_radius));
@@ -169,6 +170,24 @@ inline void free_mean_fields_runtime(MeanFieldsRuntime &mf)
     mf = MeanFieldsRuntime{};
 }
 
+inline void update_radial_statistics_start(MeanFieldsRuntime &mf, const int step)
+{
+    if (mf.state.start_uy_average || step < NSTATS_START_STEP)
+    {
+        return;
+    }
+
+    mf.state.start_uy_average = true;
+    mf.state.step_uy_avg_start = static_cast<unsigned int>(step);
+    mf.state.uy_avg_samples = 0;
+
+    std::cout << "Starting radial temporal statistics at step "
+              << mf.state.step_uy_avg_start
+              << " | stats_start_step = " << NSTATS_START_STEP
+              << " | last_abs_delta_tke_avg = " << mf.host.abs_delta
+              << "\n";
+}
+
 inline void update_tke_state(MeanFieldsRuntime &mf, const int step)
 {
     if (mf.state.first_tke_sample)
@@ -181,19 +200,6 @@ inline void update_tke_state(MeanFieldsRuntime &mf, const int step)
     {
         mf.host.delta = mf.host.tke_avg - mf.host.tke_avg_prev;
         mf.host.abs_delta = std::abs(mf.host.delta);
-
-        if (!mf.state.start_uy_average &&
-            mf.host.abs_delta < MeanFieldsState::tke_tolerance)
-        {
-            mf.state.start_uy_average = true;
-            mf.state.step_uy_avg_start = static_cast<unsigned int>(step);
-            mf.state.uy_avg_samples = 0;
-
-            std::cout << "Starting radial temporal average of uy at step "
-                      << mf.state.step_uy_avg_start
-                      << " | abs_delta_tke_avg = " << mf.host.abs_delta
-                      << "\n";
-        }
     }
 
     std::cout << std::scientific
@@ -238,6 +244,7 @@ inline void write_radial_profile_metadata(const MeanFieldsRuntime &mf)
     std::fprintf(file, "NOUTPUT %d\n", NOUTPUT);
     std::fprintf(file, "NPROFILE_OUTPUT %d\n", NOUTPUT);
     std::fprintf(file, "NSTATS_SAMPLE %d\n", 1);
+    std::fprintf(file, "NSTATS_START_STEP %d\n", NSTATS_START_STEP);
     std::fprintf(file, "Re %d\n", static_cast<int>(std::round(Re)));
     std::fprintf(file, "We %d\n", static_cast<int>(std::round(We)));
     std::fprintf(file, "D %.9g\n", static_cast<double>(static_cast<real_t>(2.0) * jet_radius));
@@ -252,7 +259,7 @@ inline void write_radial_profile_metadata(const MeanFieldsRuntime &mf)
 
     if (mf.state.start_uy_average && mf.state.uy_avg_samples > 0)
     {
-        const unsigned int first_sample_step = mf.state.step_uy_avg_start + 1;
+        const unsigned int first_sample_step = mf.state.step_uy_avg_start;
         const unsigned int last_sample_step = first_sample_step + mf.state.uy_avg_samples - 1;
 
         std::fprintf(file, "uy_avg_first_sample_step %u\n", first_sample_step);
